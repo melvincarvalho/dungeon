@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Browser RPG (Preact + htm)</title>
+    <style>
+      :root {
+        font-family: system-ui, sans-serif;
+        background: #1e1e1e;
+        color: #e0e0e0;
+      }
+      body, html {
+        height: 100%;
+        margin: 0;
+      }
+      #app {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      header {
+        padding: 0.75rem 1rem;
+        background: #2d2d2d;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      main {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        padding: 1rem;
+        white-space: pre-wrap;
+      }
+      .bubble {
+        margin-bottom: 0.75rem;
+        padding: 0.75rem 1rem;
+        border-radius: 0.75rem;
+        max-width: 60ch;
+      }
+      .dm { background:#383838; border-left:4px solid #9d79d6; }
+      .player { background:#2d4d2d; border-right:4px solid #79d67a; margin-left:auto; }
+      .input-bar {
+        display: flex;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        background: #2d2d2d;
+      }
+      .input-bar input[type="text"] {
+        flex: 1 1 auto;
+        background: #1e1e1e;
+        border: 1px solid #555;
+        color: #e0e0e0;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+      }
+      button {
+        background: #9d79d6;
+        border: none;
+        color: #fff;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      select, input[type="text"] {
+        background: #1e1e1e;
+        color: #e0e0e0;
+        border: 1px solid #555;
+        border-radius: 6px;
+        padding: 0.5rem 0.75rem;
+      }
+      .modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.75);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .modal-inner {
+        background: #2d2d2d;
+        padding: 2rem;
+        border-radius: 12px;
+        max-width: 90vw;
+      }
+      h1 { margin-top:0; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module">
+      import { html, render, useState, useEffect, useRef } from 'https://unpkg.com/htm@3.1.1/preact/standalone.module.js';
+
+      // ----- static data ----------------------------------------------------
+      const GENRES = {
+        "Fantasy": [
+          "Noble", "Peasant", "Mage", "Knight", "Ranger", "Thief", "Bard", "Cleric", "Assassin", "Paladin"
+        ],
+        "Sci‑Fi": [
+          "Space Marine", "Scientist", "Android", "Pilot", "Engineer", "Bounty Hunter", "Starship Captain"
+        ],
+        "Cyberpunk": [
+          "Hacker", "Street Samurai", "Corporate Agent", "Techie", "Cyborg"
+        ],
+        "Post‑Apocalyptic": [
+          "Survivor", "Scavenger", "Raider", "Medic"
+        ]
+      };
+
+      const ROLE_STARTERS = {
+        "Fantasy": {
+          "Peasant": "You're toiling in the fields of a small village when",
+          "Noble": "You're overseeing your estate's affairs when",
+          "Mage": "You're studying ancient tomes in your tower when",
+          "Knight": "You're training in the castle courtyard when",
+          "Ranger": "You're tracking game in the deep forest when",
+          "Thief": "You're casing a noble's manor in the city when",
+          "Bard": "You're performing in a crowded tavern when",
+          "Cleric": "You're tending to the sick in the temple when",
+          "Assassin": "You're preparing for a contract in the shadows when",
+          "Paladin": "You're praying at the altar of your deity when"
+        },
+        "Sci‑Fi": {
+          "Space Marine": "You're conducting patrol on a derelict space station when",
+          "Scientist": "You're analyzing alien samples in your lab when",
+          "Android": "You're performing system diagnostics on your ship when",
+          "Pilot": "You're navigating through an asteroid field when",
+          "Engineer": "You're repairing the FTL drive when",
+          "Bounty Hunter": "You're tracking a target through a spaceport when",
+          "Starship Captain": "You're commanding the bridge during warp travel when"
+        },
+        "Cyberpunk": {
+          "Hacker": "You're infiltrating a corporate network when",
+          "Street Samurai": "You're patrolling the neon‑lit streets when",
+          "Corporate Agent": "You're closing a deal in a high‑rise office when",
+          "Techie": "You're modifying cyberware in your workshop when",
+          "Cyborg": "You're calibrating your cybernetic enhancements when"
+        },
+        "Post‑Apocalyptic": {
+          "Survivor": "You're scavenging in the ruins of an old city when",
+          "Scavenger": "You're searching a pre‑collapse bunker when",
+          "Raider": "You're ambushing a convoy in the wasteland when",
+          "Medic": "You're treating radiation sickness in your clinic when"
+        }
+      };
+
+      function getRoleStarter(genre, role) {
+        return ROLE_STARTERS[genre]?.[role] || "You find yourself in an unexpected situation when";
+      }
+
+      function buildSystemPrompt({genre, role, name, starter}) {
+        return `You are a masterful Dungeon Master guiding an immersive role‑playing adventure set in a richly detailed ${genre} world. Your responses MUST follow these rules:\n\n1. RESPOND TO PLAYER ACTIONS:\n   • Always incorporate and react to the player's most recent action\n   • Make the player feel their choices directly impact the story\n   • Progress the narrative based on the player's decisions\n\n2. CONTENT RULES:\n   • NEVER ask direct questions (e.g., "What do you do?")\n   • ALWAYS use NPCs to interact through dialogue/actions\n   • ALWAYS use proper punctuation\n   • RESPOND ONLY AS DUNGEON MASTER\n   • Keep responses concise (max 150 tokens)\n\n3. NARRATIVE FLOW:\n   • Describe immediate consequences of player actions\n   • Advance the story with new challenges/revelations\n   • Maintain consistent world logic\n\nADVENTURE START: ${name} the ${role} begins with:\n${starter}`;
+      }
+
+      // ----- helpers --------------------------------------------------------
+      async function callOpenAI({key, messages}) {
+        const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${key}`
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages,
+            temperature: 0.7,
+            top_p: 0.95,
+            max_tokens: 180,
+            stop: ["\n\n"]
+          })
+        });
+        if (!resp.ok) throw new Error(await resp.text());
+        const json = await resp.json();
+        return json.choices?.[0]?.message?.content?.trim() || '';
+      }
+
+      // ----- components -----------------------------------------------------
+      function Config({onStart}) {
+        const [genre, setGenre]   = useState(Object.keys(GENRES)[0]);
+        const [role,  setRole]    = useState(GENRES[genre][0]);
+        const [name,  setName]    = useState('Bob');
+
+        useEffect(()=>{ setRole(GENRES[genre][0]); }, [genre]);
+
+        return html`
+          <div style="padding:2rem;max-width:480px;margin:0 auto;">
+            <h1>Start Your Adventure</h1>
+            <label>Genre<br/>${html`<select value=${genre} onInput=${e=>setGenre(e.target.value)}>
+              ${Object.keys(GENRES).map(g=>html`<option value=${g}>${g}</option>`)}
+            </select>`}</label><br/><br/>
+            <label>Role<br/>${html`<select value=${role} onInput=${e=>setRole(e.target.value)}>
+              ${GENRES[genre].map(r=>html`<option value=${r}>${r}</option>`)}
+            </select>`}</label><br/><br/>
+            <label>Character Name<br/><input type="text" value=${name} onInput=${e=>setName(e.target.value)} /></label><br/><br/>
+            <button onClick=${()=>onStart({genre, role, name})}>Begin</button>
+          </div>
+        `;
+      }
+
+      function Chat({apiKey, config}) {
+        const scrollRef = useRef(null);
+        const [messages, setMessages] = useState(()=>{
+          const sys = {role:'system', content: buildSystemPrompt({...config, starter: getRoleStarter(config.genre, config.role)})};
+          return [sys];
+        });
+        const [input, setInput] = useState('');
+        const [loading, setLoading] = useState(false);
+
+        useEffect(()=>{
+          if(scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }, [messages]);
+
+        // ----- send player input ------------------------------------------
+        async function send() {
+          if (!input.trim() || loading) return;
+          const userMsg = {role:'user', content: input.trim()};
+          setMessages(m=>[...m, userMsg]);
+          setInput('');
+          setLoading(true);
+          try {
+            const assistantContent = await callOpenAI({key: apiKey, messages:[...messages, userMsg]});
+            const assistantMsg = {role:'assistant', content: assistantContent};
+            setMessages(m=>[...m, assistantMsg]);
+          } catch(err) {
+            alert('OpenAI error: '+err.message);
+          } finally {
+            setLoading(false);
+          }
+        }
+
+        // ----- UI ---------------------------------------------------------
+        return html`
+          <header>
+            <span>${config.name} the ${config.role} — ${config.genre}</span>
+          </header>
+          <main ref=${scrollRef}>
+            ${messages.filter(m=>m.role!=='system').map(m=>html`<div class="bubble ${m.role==='assistant'?'dm':'player'}">${m.content}</div>`)}
+            ${loading && html`<div class="bubble dm">…</div>`}
+          </main>
+          <form class="input-bar" onSubmit=${e=>{e.preventDefault();send();}}>
+            <input type="text" value=${input} placeholder="Your move…" onInput=${e=>setInput(e.target.value)} />
+            <button type="submit">Send</button>
+          </form>
+        `;
+      }
+
+      function App() {
+        const [apiKey, setApiKey] = useState(()=>localStorage.getItem('OPENAI_KEY')||'');
+        const [gameConfig, setGameConfig] = useState(null);
+
+        function saveKey(key){ localStorage.setItem('OPENAI_KEY', key); setApiKey(key); }
+
+        // Key modal shown if missing
+        const keyModal = !apiKey && html`
+          <div class="modal">
+            <div class="modal-inner">
+              <h1>Enter your OpenAI API key</h1>
+              <input type="password" style="width:100%;" onKeydown=${e=>{if(e.key==='Enter') saveKey(e.target.value);}} />
+              <br/><br/>
+              <button onClick=${e=>{const inp=e.target.previousElementSibling; saveKey(inp.value);}}>Save</button>
+            </div>
+          </div>`;
+
+        return html`${keyModal}
+          ${!gameConfig && apiKey && html`<${Config} onStart=${config=>setGameConfig(config)} />`}
+          ${gameConfig && apiKey && html`<${Chat} apiKey=${apiKey} config=${gameConfig} />`}`;
+      }
+
+      render(html`<${App} />`, document.getElementById('app'));
+    </script>
+  </body>
+</html>
+
