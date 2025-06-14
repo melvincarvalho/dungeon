@@ -213,7 +213,7 @@
         `
       }
 
-      function Chat({ apiKey, config }) {
+      function Chat({ apiKey, config, onNewCharacter }) {
         const scrollRef = useRef(null)
         const [messages, setMessages] = useState(() => {
           const sys = {
@@ -227,6 +227,7 @@
         })
         const [input, setInput] = useState('')
         const [loading, setLoading] = useState(false)
+        const [showConfirm, setShowConfirm] = useState(false)
 
         useEffect(() => {
           if (scrollRef.current)
@@ -258,21 +259,66 @@
         }
 
         // ----- UI ---------------------------------------------------------
-        return html`
+        const confirmModal =
+          showConfirm &&
+          html`
+            <div
+              class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
+            >
+              <div
+                class="bg-gray-800 p-6 rounded-2xl shadow-2xl border border-gray-700 max-w-sm w-full"
+              >
+                <h3 class="text-lg font-semibold text-white mb-4">
+                  Start New Adventure?
+                </h3>
+                <p class="text-gray-400 mb-6">
+                  This will create a new character and reset your current
+                  adventure. This action cannot be undone.
+                </p>
+                <div class="flex gap-3">
+                  <button
+                    onClick=${() => setShowConfirm(false)}
+                    class="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick=${() => {
+                      setShowConfirm(false)
+                      onNewCharacter()
+                    }}
+                    class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-all"
+                  >
+                    New Character
+                  </button>
+                </div>
+              </div>
+            </div>
+          `
+
+        return html`${confirmModal}
           <header
             class="bg-gray-800 border-b border-gray-700 px-6 py-4 shadow-lg"
           >
             <div class="flex items-center justify-between">
-              <h2
-                class="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-dm-purple to-player-green"
+              <div class="flex items-center space-x-4">
+                <h2
+                  class="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-dm-purple to-player-green"
+                >
+                  ${config.name} the ${config.role}
+                </h2>
+                <span
+                  class="text-sm text-gray-400 bg-gray-700 px-3 py-1 rounded-full"
+                >
+                  ${config.genre}
+                </span>
+              </div>
+              <button
+                onClick=${() => setShowConfirm(true)}
+                class="text-sm bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white px-3 py-2 rounded-lg transition-all duration-200 border border-gray-600 hover:border-gray-500"
               >
-                ${config.name} the ${config.role}
-              </h2>
-              <span
-                class="text-sm text-gray-400 bg-gray-700 px-3 py-1 rounded-full"
-              >
-                ${config.genre}
-              </span>
+                New Character
+              </button>
             </div>
           </header>
 
@@ -345,15 +391,17 @@
                 ${loading ? 'Sending...' : 'Send'}
               </button>
             </div>
-          </form>
-        `
+          </form> `
       }
 
       function App() {
         const [apiKey, setApiKey] = useState(
           () => localStorage.getItem('OPENAI_KEY') || ''
         )
-        const [gameConfig, setGameConfig] = useState(null)
+        const [gameConfig, setGameConfig] = useState(() => {
+          const saved = localStorage.getItem('GAME_CONFIG')
+          return saved ? JSON.parse(saved) : null
+        })
         const [keyInput, setKeyInput] = useState('')
 
         function saveKey(key) {
@@ -362,6 +410,16 @@
             setApiKey(key.trim())
             setKeyInput('')
           }
+        }
+
+        function startNewGame(config) {
+          localStorage.setItem('GAME_CONFIG', JSON.stringify(config))
+          setGameConfig(config)
+        }
+
+        function resetCharacter() {
+          localStorage.removeItem('GAME_CONFIG')
+          setGameConfig(null)
         }
 
         // Key modal shown if missing
@@ -412,12 +470,14 @@
           </div>`
 
         return html`${keyModal}
-        ${!gameConfig &&
-        apiKey &&
-        html`<${Config} onStart=${config => setGameConfig(config)} />`}
+        ${!gameConfig && apiKey && html`<${Config} onStart=${startNewGame} />`}
         ${gameConfig &&
         apiKey &&
-        html`<${Chat} apiKey=${apiKey} config=${gameConfig} />`}`
+        html`<${Chat}
+          apiKey=${apiKey}
+          config=${gameConfig}
+          onNewCharacter=${resetCharacter}
+        />`}`
       }
 
       render(html`<${App} />`, document.getElementById('app'))
