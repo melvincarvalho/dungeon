@@ -22,6 +22,8 @@
       window.secp256k1 = await import(
         'https://unpkg.com/@noble/secp256k1@2.0.0/index.js'
       )
+      // Import nostr-tools for relay publishing
+      window.NostrTools = await import('https://esm.sh/nostr-tools@1.14.0')
     </script>
   </head>
   <body class="h-full font-sans">
@@ -483,6 +485,10 @@ ${getRoleStarter(
         const [showConfirm, setShowConfirm] = useState(false)
         const [showKeys, setShowKeys] = useState(false)
         const [showProfiles, setShowProfiles] = useState(false)
+        const [publishing, setPublishing] = useState({
+          character: false,
+          dm: false
+        })
 
         const nostrKeys = loadNostrKeys()
         const dmKeys = loadDMKeys()
@@ -492,6 +498,117 @@ ${getRoleStarter(
           ? generateCharacterProfile(config, nostrKeys)
           : null
         const dmProfile = dmKeys.pubkey ? generateDMProfile(dmKeys) : null
+
+        async function publishProfileToRelays(profile, privateKey) {
+          try {
+            // Common relays to publish to
+            const relays = [
+              'wss://relay.damus.io',
+              'wss://nos.lol',
+              'wss://relay.nostr.band',
+              'wss://nostr.wine',
+              'wss://relay.current.fyi'
+            ]
+
+            // Create the event template
+            const eventTemplate = {
+              kind: 0,
+              created_at: Math.floor(Date.now() / 1000),
+              tags: [],
+              content: profile.content,
+              pubkey: profile.pubkey
+            }
+
+            // Sign the event
+            const signedEvent = NostrTools.finishEvent(
+              eventTemplate,
+              privateKey
+            )
+
+            // Create pool and publish
+            const pool = new NostrTools.SimplePool()
+
+            console.log('Publishing to relays:', relays)
+            console.log('Signed event:', signedEvent)
+
+            const publishPromises = pool.publish(relays, signedEvent)
+
+            // Wait for publications to complete (with timeout)
+            const results = await Promise.allSettled(
+              publishPromises.map(p =>
+                Promise.race([
+                  p,
+                  new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Timeout')), 10000)
+                  )
+                ])
+              )
+            )
+
+            // Count successful publications
+            const successful = results.filter(
+              r => r.status === 'fulfilled'
+            ).length
+            const failed = results.filter(r => r.status === 'rejected').length
+
+            pool.close(relays)
+
+            return { successful, failed, total: relays.length }
+          } catch (error) {
+            console.error('Publishing error:', error)
+            throw error
+          }
+        }
+
+        async function publishCharacterProfile() {
+          if (!characterProfile || !nostrKeys.privkey) return
+
+          setPublishing(prev => ({ ...prev, character: true }))
+
+          try {
+            const result = await publishProfileToRelays(
+              characterProfile,
+              nostrKeys.privkey
+            )
+
+            if (result.successful > 0) {
+              alert(
+                `✅ Character profile published to ${result.successful}/${result.total} relays!`
+              )
+            } else {
+              alert(`❌ Failed to publish character profile to any relays`)
+            }
+          } catch (error) {
+            alert(`❌ Error publishing character profile: ${error.message}`)
+          } finally {
+            setPublishing(prev => ({ ...prev, character: false }))
+          }
+        }
+
+        async function publishDMProfile() {
+          if (!dmProfile || !dmKeys.privkey) return
+
+          setPublishing(prev => ({ ...prev, dm: true }))
+
+          try {
+            const result = await publishProfileToRelays(
+              dmProfile,
+              dmKeys.privkey
+            )
+
+            if (result.successful > 0) {
+              alert(
+                `✅ DM profile published to ${result.successful}/${result.total} relays!`
+              )
+            } else {
+              alert(`❌ Failed to publish DM profile to any relays`)
+            }
+          } catch (error) {
+            alert(`❌ Error publishing DM profile: ${error.message}`)
+          } finally {
+            setPublishing(prev => ({ ...prev, dm: false }))
+          }
+        }
 
         useEffect(() => {
           if (scrollRef.current)
@@ -795,6 +912,22 @@ ${getRoleStarter(
                         >
                           ${JSON.parse(characterProfile.content).about}
                         </p>
+                        <div class="flex gap-2 mt-3 mb-3">
+                          <button
+                            onClick=${publishCharacterProfile}
+                            disabled=${publishing.character ||
+                            !nostrKeys.privkey}
+                            class="flex-1 py-2 px-3 rounded-lg transition-all text-sm font-medium ${publishing.character
+                              ? 'bg-gray-400 cursor-not-allowed'
+                              : !nostrKeys.privkey
+                              ? 'bg-gray-300 cursor-not-allowed'
+                              : 'bg-dm-purple hover:bg-purple-600'} text-white"
+                          >
+                            ${publishing.character
+                              ? '🔄 Publishing...'
+                              : '📡 Publish to Relays'}
+                          </button>
+                        </div>
                         <details class="mt-3">
                           <summary
                             class="cursor-pointer text-sm font-medium ${isDarkMode
@@ -808,7 +941,7 @@ ${getRoleStarter(
                               ? 'bg-gray-800 text-green-400'
                               : 'bg-white text-green-600'}"
                           >
-${JSON.stringify(characterProfile, null, 2)}</pre
+ ${JSON.stringify(characterProfile, null, 2)}</pre
                           >
                         </details>
                       </div>
@@ -855,6 +988,21 @@ ${JSON.stringify(characterProfile, null, 2)}</pre
                         >
                           ${JSON.parse(dmProfile.content).about}
                         </p>
+                        <div class="flex gap-2 mt-3 mb-3">
+                          <button
+                            onClick=${publishDMProfile}
+                            disabled=${publishing.dm || !dmKeys.privkey}
+                            class="flex-1 py-2 px-3 rounded-lg transition-all text-sm font-medium ${publishing.dm
+                              ? 'bg-gray-400 cursor-not-allowed'
+                              : !dmKeys.privkey
+                              ? 'bg-gray-300 cursor-not-allowed'
+                              : 'bg-purple-600 hover:bg-purple-700'} text-white"
+                          >
+                            ${publishing.dm
+                              ? '🔄 Publishing...'
+                              : '📡 Publish to Relays'}
+                          </button>
+                        </div>
                         <details class="mt-3">
                           <summary
                             class="cursor-pointer text-sm font-medium ${isDarkMode
@@ -868,7 +1016,7 @@ ${JSON.stringify(characterProfile, null, 2)}</pre
                               ? 'bg-gray-800 text-green-400'
                               : 'bg-white text-green-600'}"
                           >
-${JSON.stringify(dmProfile, null, 2)}</pre
+ ${JSON.stringify(dmProfile, null, 2)}</pre
                           >
                         </details>
                       </div>
@@ -876,28 +1024,72 @@ ${JSON.stringify(dmProfile, null, 2)}</pre
                   `}
                 </div>
 
-                <div class="mt-6 flex justify-end gap-3">
-                  <button
-                    onClick=${() => {
-                      const profiles = {
-                        character: characterProfile,
-                        dm: dmProfile
-                      }
-                      navigator.clipboard?.writeText(
-                        JSON.stringify(profiles, null, 2)
-                      )
-                      alert('Profiles copied to clipboard!')
-                    }}
-                    class="bg-gray-600 hover:bg-gray-500 text-white py-2 px-4 rounded-lg transition-all"
-                  >
-                    📋 Copy JSON
-                  </button>
-                  <button
-                    onClick=${() => setShowProfiles(false)}
-                    class="bg-dm-purple hover:bg-purple-600 text-white py-2 px-4 rounded-lg transition-all"
-                  >
-                    Close
-                  </button>
+                <div class="mt-6 flex justify-between items-center">
+                  <div class="flex gap-3">
+                    <button
+                      onClick=${async () => {
+                        const anyPublishing =
+                          publishing.character || publishing.dm
+                        if (anyPublishing) return
+
+                        // Publish both profiles in parallel
+                        const promises = []
+                        if (characterProfile && nostrKeys.privkey) {
+                          promises.push(publishCharacterProfile())
+                        }
+                        if (dmProfile && dmKeys.privkey) {
+                          promises.push(publishDMProfile())
+                        }
+
+                        if (promises.length > 0) {
+                          await Promise.all(promises)
+                        } else {
+                          alert(
+                            '❌ No profiles or private keys available to publish'
+                          )
+                        }
+                      }}
+                      disabled=${publishing.character ||
+                      publishing.dm ||
+                      (!characterProfile && !dmProfile) ||
+                      (!nostrKeys.privkey && !dmKeys.privkey)}
+                      class="py-2 px-4 rounded-lg transition-all font-medium ${publishing.character ||
+                      publishing.dm
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : (!characterProfile && !dmProfile) ||
+                          (!nostrKeys.privkey && !dmKeys.privkey)
+                        ? 'bg-gray-300 cursor-not-allowed'
+                        : 'bg-green-600 hover:bg-green-700'} text-white"
+                    >
+                      ${publishing.character || publishing.dm
+                        ? '🔄 Publishing...'
+                        : '🚀 Publish All Profiles'}
+                    </button>
+                  </div>
+
+                  <div class="flex gap-3">
+                    <button
+                      onClick=${() => {
+                        const profiles = {
+                          character: characterProfile,
+                          dm: dmProfile
+                        }
+                        navigator.clipboard?.writeText(
+                          JSON.stringify(profiles, null, 2)
+                        )
+                        alert('Profiles copied to clipboard!')
+                      }}
+                      class="bg-gray-600 hover:bg-gray-500 text-white py-2 px-4 rounded-lg transition-all"
+                    >
+                      📋 Copy JSON
+                    </button>
+                    <button
+                      onClick=${() => setShowProfiles(false)}
+                      class="bg-dm-purple hover:bg-purple-600 text-white py-2 px-4 rounded-lg transition-all"
+                    >
+                      Close
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
