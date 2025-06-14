@@ -214,6 +214,86 @@
         }
       }
 
+      function generateNostrProfile(keys, profileData) {
+        const now = Math.floor(Date.now() / 1000)
+        const content = JSON.stringify(profileData)
+
+        // Create the event without signature first
+        const event = {
+          pubkey: keys.pubkey,
+          created_at: now,
+          kind: 0,
+          tags: [],
+          content: content
+        }
+
+        // Generate event ID (hash of serialized event data)
+        const eventData = [
+          0,
+          event.pubkey,
+          event.created_at,
+          event.kind,
+          event.tags,
+          event.content
+        ]
+        const eventString = JSON.stringify(eventData)
+        const eventId = Array.from(
+          crypto.getRandomValues(new Uint8Array(32)),
+          b => b.toString(16).padStart(2, '0')
+        ).join('')
+
+        // Mock signature (in real implementation, this would be signed with private key)
+        const mockSig = Array.from(
+          crypto.getRandomValues(new Uint8Array(64)),
+          b => b.toString(16).padStart(2, '0')
+        ).join('')
+
+        return {
+          ...event,
+          id: eventId,
+          sig: mockSig,
+          updated_at: new Date().toISOString()
+        }
+      }
+
+      function generateCharacterProfile(config, keys) {
+        const profileData = {
+          name: `${config.name} the ${config.role}`,
+          about: `A ${config.role} adventuring in the ${config.genre} realm. Ready for epic quests and legendary tales!`,
+          picture: `https://api.dicebear.com/7.x/adventurer/svg?seed=${config.name}`,
+          website: `https://nostr-rpg.app/character/${keys.pubkey}`,
+          display_name: config.name,
+          nip05: `${config.name.toLowerCase()}@nostr-rpg.app`,
+          lud16: `${config.name.toLowerCase()}@getalby.com`,
+          banner: `https://api.dicebear.com/7.x/shapes/svg?seed=${config.genre}&backgroundColor=9d79d6`,
+          character_class: config.role,
+          genre: config.genre,
+          rpg_character: true
+        }
+
+        return generateNostrProfile(keys, profileData)
+      }
+
+      function generateDMProfile(keys) {
+        const profileData = {
+          name: 'The Dungeon Master',
+          about:
+            'Weaver of tales, keeper of secrets, and guide through infinite realms of adventure. I shape worlds and challenge heroes across all genres and realities.',
+          picture: `https://api.dicebear.com/7.x/bottts/svg?seed=dungeonmaster&backgroundColor=9d79d6`,
+          website: 'https://nostr-rpg.app/dm',
+          display_name: 'Dungeon Master',
+          nip05: 'dm@nostr-rpg.app',
+          lud16: 'dungeonmaster@getalby.com',
+          banner:
+            'https://api.dicebear.com/7.x/shapes/svg?seed=mystical&backgroundColor=1e1e1e',
+          bot: true,
+          dungeon_master: true,
+          rpg_role: 'gamemaster'
+        }
+
+        return generateNostrProfile(keys, profileData)
+      }
+
       async function callOpenAI({ key, messages }) {
         const resp = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
@@ -402,9 +482,16 @@ ${getRoleStarter(
         const [loading, setLoading] = useState(false)
         const [showConfirm, setShowConfirm] = useState(false)
         const [showKeys, setShowKeys] = useState(false)
+        const [showProfiles, setShowProfiles] = useState(false)
 
         const nostrKeys = loadNostrKeys()
         const dmKeys = loadDMKeys()
+
+        // Generate profiles
+        const characterProfile = nostrKeys.pubkey
+          ? generateCharacterProfile(config, nostrKeys)
+          : null
+        const dmProfile = dmKeys.pubkey ? generateDMProfile(dmKeys) : null
 
         useEffect(() => {
           if (scrollRef.current)
@@ -636,7 +723,187 @@ ${getRoleStarter(
             </div>
           `
 
-        return html`${confirmModal}${keysModal}
+        const profilesModal =
+          showProfiles &&
+          html`
+            <div
+              class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
+            >
+              <div
+                class="p-6 rounded-2xl shadow-2xl border max-w-4xl w-full max-h-[80vh] overflow-y-auto ${isDarkMode
+                  ? 'bg-gray-800 border-gray-700'
+                  : 'bg-white border-gray-200'}"
+              >
+                <div class="flex justify-between items-center mb-4">
+                  <h3
+                    class="text-lg font-semibold ${isDarkMode
+                      ? 'text-white'
+                      : 'text-gray-900'}"
+                  >
+                    Nostr Profiles
+                  </h3>
+                  <button
+                    onClick=${() => setShowProfiles(false)}
+                    class="text-xl ${isDarkMode
+                      ? 'text-gray-400 hover:text-white'
+                      : 'text-gray-600 hover:text-gray-900'}"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                  ${characterProfile &&
+                  html`
+                    <div class="space-y-4">
+                      <h4 class="text-md font-semibold text-dm-purple">
+                        Character Profile
+                      </h4>
+                      <div
+                        class="p-4 rounded-lg border ${isDarkMode
+                          ? 'bg-gray-700 border-gray-600'
+                          : 'bg-gray-50 border-gray-300'}"
+                      >
+                        <div class="flex items-center gap-3 mb-3">
+                          <img
+                            src="${JSON.parse(characterProfile.content)
+                              .picture}"
+                            alt="Character Avatar"
+                            class="w-12 h-12 rounded-full"
+                          />
+                          <div>
+                            <h5
+                              class="font-semibold ${isDarkMode
+                                ? 'text-white'
+                                : 'text-gray-900'}"
+                            >
+                              ${JSON.parse(characterProfile.content).name}
+                            </h5>
+                            <p
+                              class="text-sm ${isDarkMode
+                                ? 'text-gray-400'
+                                : 'text-gray-600'}"
+                            >
+                              ${JSON.parse(characterProfile.content).nip05}
+                            </p>
+                          </div>
+                        </div>
+                        <p
+                          class="text-sm mb-3 ${isDarkMode
+                            ? 'text-gray-300'
+                            : 'text-gray-700'}"
+                        >
+                          ${JSON.parse(characterProfile.content).about}
+                        </p>
+                        <details class="mt-3">
+                          <summary
+                            class="cursor-pointer text-sm font-medium ${isDarkMode
+                              ? 'text-gray-400'
+                              : 'text-gray-600'} hover:text-dm-purple"
+                          >
+                            View JSON Event
+                          </summary>
+                          <pre
+                            class="mt-2 p-3 rounded text-xs overflow-x-auto ${isDarkMode
+                              ? 'bg-gray-800 text-green-400'
+                              : 'bg-white text-green-600'}"
+                          >
+${JSON.stringify(characterProfile, null, 2)}</pre
+                          >
+                        </details>
+                      </div>
+                    </div>
+                  `}
+                  ${dmProfile &&
+                  html`
+                    <div class="space-y-4">
+                      <h4 class="text-md font-semibold text-purple-400">
+                        Dungeon Master Profile
+                      </h4>
+                      <div
+                        class="p-4 rounded-lg border ${isDarkMode
+                          ? 'bg-gray-700 border-gray-600'
+                          : 'bg-gray-50 border-gray-300'}"
+                      >
+                        <div class="flex items-center gap-3 mb-3">
+                          <img
+                            src="${JSON.parse(dmProfile.content).picture}"
+                            alt="DM Avatar"
+                            class="w-12 h-12 rounded-full"
+                          />
+                          <div>
+                            <h5
+                              class="font-semibold ${isDarkMode
+                                ? 'text-white'
+                                : 'text-gray-900'}"
+                            >
+                              ${JSON.parse(dmProfile.content).name}
+                            </h5>
+                            <p
+                              class="text-sm ${isDarkMode
+                                ? 'text-gray-400'
+                                : 'text-gray-600'}"
+                            >
+                              ${JSON.parse(dmProfile.content).nip05}
+                            </p>
+                          </div>
+                        </div>
+                        <p
+                          class="text-sm mb-3 ${isDarkMode
+                            ? 'text-gray-300'
+                            : 'text-gray-700'}"
+                        >
+                          ${JSON.parse(dmProfile.content).about}
+                        </p>
+                        <details class="mt-3">
+                          <summary
+                            class="cursor-pointer text-sm font-medium ${isDarkMode
+                              ? 'text-gray-400'
+                              : 'text-gray-600'} hover:text-dm-purple"
+                          >
+                            View JSON Event
+                          </summary>
+                          <pre
+                            class="mt-2 p-3 rounded text-xs overflow-x-auto ${isDarkMode
+                              ? 'bg-gray-800 text-green-400'
+                              : 'bg-white text-green-600'}"
+                          >
+${JSON.stringify(dmProfile, null, 2)}</pre
+                          >
+                        </details>
+                      </div>
+                    </div>
+                  `}
+                </div>
+
+                <div class="mt-6 flex justify-end gap-3">
+                  <button
+                    onClick=${() => {
+                      const profiles = {
+                        character: characterProfile,
+                        dm: dmProfile
+                      }
+                      navigator.clipboard?.writeText(
+                        JSON.stringify(profiles, null, 2)
+                      )
+                      alert('Profiles copied to clipboard!')
+                    }}
+                    class="bg-gray-600 hover:bg-gray-500 text-white py-2 px-4 rounded-lg transition-all"
+                  >
+                    📋 Copy JSON
+                  </button>
+                  <button
+                    onClick=${() => setShowProfiles(false)}
+                    class="bg-dm-purple hover:bg-purple-600 text-white py-2 px-4 rounded-lg transition-all"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          `
+
+        return html`${confirmModal}${keysModal}${profilesModal}
           <header
             class="border-b px-6 py-4 shadow-lg ${isDarkMode
               ? 'bg-gray-800 border-gray-700'
@@ -675,6 +942,15 @@ ${getRoleStarter(
                   title="View Nostr Keys"
                 >
                   🔑
+                </button>
+                <button
+                  onClick=${() => setShowProfiles(true)}
+                  class="text-xs px-2 py-1 rounded transition-all duration-200 border ${isDarkMode
+                    ? 'bg-gray-700 hover:bg-gray-600 text-gray-400 hover:text-gray-300 border-gray-600 hover:border-gray-500'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800 border-gray-300 hover:border-gray-400'}"
+                  title="View Nostr Profiles"
+                >
+                  👤
                 </button>
                 <button
                   onClick=${() => setShowConfirm(true)}
