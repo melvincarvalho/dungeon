@@ -17,6 +17,12 @@
         }
       }
     </script>
+    <script type="module">
+      // Import secp256k1 for nostr keypair generation
+      window.secp256k1 = await import(
+        'https://unpkg.com/@noble/secp256k1@2.0.0/index.js'
+      )
+    </script>
   </head>
   <body class="h-full bg-gray-900 text-gray-100 font-sans">
     <div id="app" class="h-full flex flex-col"></div>
@@ -113,6 +119,37 @@
       }
 
       // ----- helpers --------------------------------------------------------
+      function generateNostrKeypair() {
+        const privkey = secp256k1.utils.randomPrivateKey()
+        const fullPubkey = secp256k1.getPublicKey(privkey, false) // false = uncompressed
+
+        // Convert to hex manually
+        const bytesToHex = bytes =>
+          Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')
+
+        // For nostr, we only want the x-coordinate of the public key (first 32 bytes after the prefix)
+        // Uncompressed pubkey format: 0x04 + 32 bytes x + 32 bytes y
+        // We skip the first byte (0x04) and take only the x-coordinate (next 32 bytes)
+        const pubkeyXCoord = fullPubkey.slice(1, 33) // Skip prefix byte, take x-coordinate
+
+        return {
+          privkey: bytesToHex(privkey),
+          pubkey: bytesToHex(pubkeyXCoord)
+        }
+      }
+
+      function saveNostrKeys(privkey, pubkey) {
+        localStorage.setItem('nostr:privkey', privkey)
+        localStorage.setItem('nostr:pubkey', pubkey)
+      }
+
+      function loadNostrKeys() {
+        return {
+          privkey: localStorage.getItem('nostr:privkey'),
+          pubkey: localStorage.getItem('nostr:pubkey')
+        }
+      }
+
       async function callOpenAI({ key, messages }) {
         const resp = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
@@ -228,6 +265,9 @@
         const [input, setInput] = useState('')
         const [loading, setLoading] = useState(false)
         const [showConfirm, setShowConfirm] = useState(false)
+        const [showKeys, setShowKeys] = useState(false)
+
+        const nostrKeys = loadNostrKeys()
 
         useEffect(() => {
           if (scrollRef.current)
@@ -296,7 +336,69 @@
             </div>
           `
 
-        return html`${confirmModal}
+        const keysModal =
+          showKeys &&
+          html`
+            <div
+              class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
+            >
+              <div
+                class="bg-gray-800 p-6 rounded-2xl shadow-2xl border border-gray-700 max-w-lg w-full"
+              >
+                <div class="flex justify-between items-center mb-4">
+                  <h3 class="text-lg font-semibold text-white">Nostr Keys</h3>
+                  <button
+                    onClick=${() => setShowKeys(false)}
+                    class="text-gray-400 hover:text-white text-xl"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div class="space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2"
+                      >Public Key</label
+                    >
+                    <div
+                      class="bg-gray-700 p-3 rounded-lg border border-gray-600"
+                    >
+                      <code class="text-xs text-green-400 break-all font-mono"
+                        >${nostrKeys.pubkey || 'Not generated'}</code
+                      >
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2"
+                      >Private Key</label
+                    >
+                    <div
+                      class="bg-gray-700 p-3 rounded-lg border border-gray-600"
+                    >
+                      <code class="text-xs text-red-400 break-all font-mono"
+                        >${nostrKeys.privkey || 'Not generated'}</code
+                      >
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">
+                      ⚠️ Keep your private key secret!
+                    </p>
+                  </div>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                  <button
+                    onClick=${() => setShowKeys(false)}
+                    class="bg-dm-purple hover:bg-purple-600 text-white py-2 px-4 rounded-lg transition-all"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          `
+
+        return html`${confirmModal}${keysModal}
           <header
             class="bg-gray-800 border-b border-gray-700 px-6 py-4 shadow-lg"
           >
@@ -313,12 +415,21 @@
                   ${config.genre}
                 </span>
               </div>
-              <button
-                onClick=${() => setShowConfirm(true)}
-                class="text-sm bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white px-3 py-2 rounded-lg transition-all duration-200 border border-gray-600 hover:border-gray-500"
-              >
-                New Character
-              </button>
+              <div class="flex items-center gap-2">
+                <button
+                  onClick=${() => setShowKeys(true)}
+                  class="text-xs bg-gray-700 hover:bg-gray-600 text-gray-400 hover:text-gray-300 px-2 py-1 rounded transition-all duration-200 border border-gray-600 hover:border-gray-500"
+                  title="View Nostr Keys"
+                >
+                  🔑
+                </button>
+                <button
+                  onClick=${() => setShowConfirm(true)}
+                  class="text-sm bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white px-3 py-2 rounded-lg transition-all duration-200 border border-gray-600 hover:border-gray-500"
+                >
+                  New Character
+                </button>
+              </div>
             </div>
           </header>
 
@@ -413,12 +524,18 @@
         }
 
         function startNewGame(config) {
+          // Generate new nostr keypair for this character
+          const keypair = generateNostrKeypair()
+          saveNostrKeys(keypair.privkey, keypair.pubkey)
+
           localStorage.setItem('GAME_CONFIG', JSON.stringify(config))
           setGameConfig(config)
         }
 
         function resetCharacter() {
           localStorage.removeItem('GAME_CONFIG')
+          localStorage.removeItem('nostr:privkey')
+          localStorage.removeItem('nostr:pubkey')
           setGameConfig(null)
         }
 
