@@ -1432,6 +1432,17 @@ ${getRoleStarter(
                 const isPartOfThread = publishedEvent && getPublishedEvent(0)
                 const isThreadRoot = publishedEvent && messageIndex === 0
 
+                // Get user info for the speech bubble header
+                const userName =
+                  m.role === 'assistant'
+                    ? 'DungeonMastr'
+                    : `${config.name} the ${config.role}`
+                const userPubkey =
+                  m.role === 'assistant' ? dmKeys.pubkey : nostrKeys.pubkey
+                const profileUrl = userPubkey
+                  ? `https://nostr.rocks/users/${userPubkey}`
+                  : '#'
+
                 return html`<div
                   class="flex ${m.role === 'assistant'
                     ? 'justify-start'
@@ -1457,6 +1468,28 @@ ${getRoleStarter(
                             ↪️ Reply in thread
                           </span>`}
                     </div>`}
+                    <div class="flex items-center gap-2 mb-2">
+                      <a
+                        href="${profileUrl}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="text-sm font-semibold hover:underline transition-all ${m.role ===
+                        'assistant'
+                          ? isDarkMode
+                            ? 'text-dm-purple hover:text-purple-300'
+                            : 'text-dm-purple hover:text-purple-600'
+                          : isDarkMode
+                          ? 'text-player-green hover:text-green-300'
+                          : 'text-green-700 hover:text-green-800'}"
+                        title="${userPubkey
+                          ? 'View profile on nostr.rocks'
+                          : 'Profile not available'}"
+                      >
+                        ${userName}
+                      </a>
+                      ${userPubkey &&
+                      html`<span class="text-xs opacity-50"> 🔗 </span>`}
+                    </div>
                     <div class="whitespace-pre-wrap">${m.content}</div>
                     <div class="flex justify-end mt-2">
                       ${canPublish &&
