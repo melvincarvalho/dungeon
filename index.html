@@ -224,6 +224,112 @@
         return localStorage.getItem(`published:${type}`) === 'true'
       }
 
+      function savePublishedEvent(messageIndex, eventId, authorPubkey) {
+        const publishedEvents = JSON.parse(
+          localStorage.getItem('published_events') || '{}'
+        )
+        publishedEvents[messageIndex] = {
+          eventId: eventId,
+          authorPubkey: authorPubkey,
+          timestamp: Date.now()
+        }
+        localStorage.setItem(
+          'published_events',
+          JSON.stringify(publishedEvents)
+        )
+      }
+
+      function getPublishedEvent(messageIndex) {
+        const publishedEvents = JSON.parse(
+          localStorage.getItem('published_events') || '{}'
+        )
+        return publishedEvents[messageIndex] || null
+      }
+
+      function getThreadParticipants(messages, currentIndex) {
+        const participants = new Set()
+        const nostrKeys = loadNostrKeys()
+        const dmKeys = loadDMKeys()
+
+        // Add character and DM pubkeys
+        if (nostrKeys.pubkey) participants.add(nostrKeys.pubkey)
+        if (dmKeys.pubkey) participants.add(dmKeys.pubkey)
+
+        // Look through previous messages for any other participants
+        for (let i = 0; i < currentIndex; i++) {
+          const eventData = getPublishedEvent(i)
+          if (eventData && eventData.authorPubkey) {
+            participants.add(eventData.authorPubkey)
+          }
+        }
+
+        return Array.from(participants)
+      }
+
+      function buildReplyTags(messages, currentIndex, authorPubkey) {
+        const tags = []
+        const rootEvent = getPublishedEvent(0) // First published message is root
+
+        // Find the immediate parent (previous published message)
+        let parentEvent = null
+        for (let i = currentIndex - 1; i >= 0; i--) {
+          const eventData = getPublishedEvent(i)
+          if (eventData) {
+            parentEvent = eventData
+            break
+          }
+        }
+
+        // Add e tags according to NIP-10
+        if (rootEvent && parentEvent) {
+          if (rootEvent.eventId === parentEvent.eventId) {
+            // Direct reply to root
+            tags.push([
+              'e',
+              rootEvent.eventId,
+              '',
+              'root',
+              rootEvent.authorPubkey
+            ])
+          } else {
+            // Reply in a thread
+            tags.push([
+              'e',
+              rootEvent.eventId,
+              '',
+              'root',
+              rootEvent.authorPubkey
+            ])
+            tags.push([
+              'e',
+              parentEvent.eventId,
+              '',
+              'reply',
+              parentEvent.authorPubkey
+            ])
+          }
+        } else if (rootEvent) {
+          // First reply to root
+          tags.push([
+            'e',
+            rootEvent.eventId,
+            '',
+            'root',
+            rootEvent.authorPubkey
+          ])
+        }
+
+        // Add p tags for all thread participants (except current author)
+        const participants = getThreadParticipants(messages, currentIndex)
+        participants.forEach(pubkey => {
+          if (pubkey !== authorPubkey) {
+            tags.push(['p', pubkey])
+          }
+        })
+
+        return tags
+      }
+
       function generateNostrProfile(keys, profileData) {
         const now = Math.floor(Date.now() / 1000)
         const content = JSON.stringify(profileData)
@@ -658,7 +764,7 @@ ${getRoleStarter(
               'wss://relay.current.fyi'
             ]
 
-            // Create RPG-themed hashtags
+            // Start with RPG-themed hashtags
             const tags = [
               ['t', 'rpg'],
               ['t', 'nostr-rpg'],
@@ -671,6 +777,14 @@ ${getRoleStarter(
             if (messageType !== 'assistant') {
               tags.push(['t', config.name.toLowerCase()])
             }
+
+            // Add NIP-10 reply tags for threading
+            const replyTags = buildReplyTags(
+              messages,
+              messageIndex,
+              keys.pubkey
+            )
+            tags.push(...replyTags)
 
             // Format the content with RPG context
             const formattedContent =
@@ -726,6 +840,9 @@ ${getRoleStarter(
             pool.close(relays)
 
             if (successful > 0) {
+              // Save event data for threading
+              savePublishedEvent(messageIndex, signedEvent.id, keys.pubkey)
+
               alert(
                 `✅ Message published to ${successful}/${relays.length} relays!`
               )
@@ -1305,10 +1422,15 @@ ${getRoleStarter(
                 const messageIndex = index
                 const isPublished = publishedMessages.includes(messageIndex)
                 const isPublishing = publishingMessages[messageIndex]
+                const publishedEvent = getPublishedEvent(messageIndex)
                 const canPublish =
                   m.role === 'assistant'
                     ? getPublishedStatus('dm')
                     : getPublishedStatus('character')
+
+                // Check if this message is part of a thread
+                const isPartOfThread = publishedEvent && getPublishedEvent(0)
+                const isThreadRoot = publishedEvent && messageIndex === 0
 
                 return html`<div
                   class="flex ${m.role === 'assistant'
@@ -1323,6 +1445,18 @@ ${getRoleStarter(
                         : 'bg-purple-50 border-l-4 border-dm-purple text-gray-800'
                       : 'bg-gradient-to-r from-player-green to-green-600 text-white ml-auto'}"
                   >
+                    ${isPartOfThread &&
+                    html`<div
+                      class="flex items-center gap-2 mb-2 text-xs opacity-75"
+                    >
+                      ${isThreadRoot
+                        ? html`<span class="flex items-center gap-1">
+                            🧵 Thread Root
+                          </span>`
+                        : html`<span class="flex items-center gap-1">
+                            ↪️ Reply in thread
+                          </span>`}
+                    </div>`}
                     <div class="whitespace-pre-wrap">${m.content}</div>
                     <div class="flex justify-end mt-2">
                       ${canPublish &&
@@ -1479,6 +1613,7 @@ ${getRoleStarter(
           localStorage.removeItem('nostr:privkey')
           localStorage.removeItem('nostr:pubkey')
           localStorage.removeItem('published_messages')
+          localStorage.removeItem('published_events')
           localStorage.removeItem('published:character')
           setGameConfig(null)
         }
