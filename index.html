@@ -68,6 +68,41 @@
         'Post‑Apocalyptic': ['Survivor', 'Scavenger', 'Raider', 'Medic']
       }
 
+      const RANDOM_NAMES = [
+        'Aiden',
+        'Lyra',
+        'Zara',
+        'Kael',
+        'Nova',
+        'Raven',
+        'Orion',
+        'Luna',
+        'Phoenix',
+        'Sage',
+        'Atlas',
+        'Iris',
+        'Dante',
+        'Aurora',
+        'Jasper',
+        'Celeste',
+        'Kai',
+        'Aria',
+        'Blaze',
+        'Seraphina',
+        'Storm',
+        'Ember',
+        'Vale',
+        'Astrid',
+        'Rex',
+        'Cora',
+        'Jett',
+        'Mira',
+        'Drake',
+        'Vera',
+        'Knox',
+        'Nyx'
+      ]
+
       const ROLE_STARTERS = {
         Fantasy: {
           Peasant: "You're toiling in the fields of a small village when",
@@ -112,6 +147,23 @@
           ROLE_STARTERS[genre]?.[role] ||
           'You find yourself in an unexpected situation when'
         )
+      }
+
+      function getRandomElement(array) {
+        return array[Math.floor(Math.random() * array.length)]
+      }
+
+      function generateRandomCharacter() {
+        const genres = Object.keys(GENRES)
+        const randomGenre = getRandomElement(genres)
+        const randomRole = getRandomElement(GENRES[randomGenre])
+        const randomName = getRandomElement(RANDOM_NAMES)
+
+        return {
+          genre: randomGenre,
+          role: randomRole,
+          name: randomName
+        }
       }
 
       function buildSystemPrompt({ genre, role, name, starter }) {
@@ -185,13 +237,21 @@
 
       // ----- components -----------------------------------------------------
       function Config({ onStart }) {
-        const [genre, setGenre] = useState(Object.keys(GENRES)[0])
-        const [role, setRole] = useState(GENRES[genre][0])
-        const [name, setName] = useState('Bob')
+        const [randomChar] = useState(() => generateRandomCharacter())
+        const [genre, setGenre] = useState(randomChar.genre)
+        const [role, setRole] = useState(randomChar.role)
+        const [name, setName] = useState(randomChar.name)
 
         useEffect(() => {
           setRole(GENRES[genre][0])
         }, [genre])
+
+        function randomizeCharacter() {
+          const newChar = generateRandomCharacter()
+          setGenre(newChar.genre)
+          setRole(newChar.role)
+          setName(newChar.name)
+        }
 
         return html`
           <div
@@ -250,12 +310,20 @@
                   />
                 </div>
 
-                <button
-                  onClick=${() => onStart({ genre, role, name })}
-                  class="w-full bg-gradient-to-r from-dm-purple to-purple-600 hover:from-purple-600 hover:to-dm-purple text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
-                >
-                  Begin Adventure
-                </button>
+                <div class="flex gap-3">
+                  <button
+                    onClick=${randomizeCharacter}
+                    class="bg-gray-600 hover:bg-gray-500 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
+                  >
+                    🎲 Randomize
+                  </button>
+                  <button
+                    onClick=${() => onStart({ genre, role, name })}
+                    class="flex-1 bg-gradient-to-r from-dm-purple to-purple-600 hover:from-purple-600 hover:to-dm-purple text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
+                  >
+                    Begin Adventure
+                  </button>
+                </div>
               </div>
             </div>
           </div>
