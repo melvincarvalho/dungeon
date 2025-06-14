@@ -143,10 +143,22 @@
         localStorage.setItem('nostr:pubkey', pubkey)
       }
 
+      function saveDMKeys(privkey, pubkey) {
+        localStorage.setItem('dm:privkey', privkey)
+        localStorage.setItem('dm:pubkey', pubkey)
+      }
+
       function loadNostrKeys() {
         return {
           privkey: localStorage.getItem('nostr:privkey'),
           pubkey: localStorage.getItem('nostr:pubkey')
+        }
+      }
+
+      function loadDMKeys() {
+        return {
+          privkey: localStorage.getItem('dm:privkey'),
+          pubkey: localStorage.getItem('dm:pubkey')
         }
       }
 
@@ -260,7 +272,27 @@
               starter: getRoleStarter(config.genre, config.role)
             })
           }
-          return [sys]
+
+          // Add initial DM introduction
+          const dmIntro = {
+            role: 'assistant',
+            content: `*A mysterious figure steps from the shadows, their eyes gleaming with ancient wisdom*
+
+Greetings, ${config.name} the ${
+              config.role
+            }. I am your Dungeon Master for this ${
+              config.genre
+            } adventure. I shall weave the tale of your journey, inhabit the characters you meet, and challenge you with the perils that await.
+
+${getRoleStarter(
+  config.genre,
+  config.role
+)} a sudden commotion draws your attention...
+
+*The DM gestures, and your adventure begins*`
+          }
+
+          return [sys, dmIntro]
         })
         const [input, setInput] = useState('')
         const [loading, setLoading] = useState(false)
@@ -268,6 +300,7 @@
         const [showKeys, setShowKeys] = useState(false)
 
         const nostrKeys = loadNostrKeys()
+        const dmKeys = loadDMKeys()
 
         useEffect(() => {
           if (scrollRef.current)
@@ -343,7 +376,7 @@
               class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
             >
               <div
-                class="bg-gray-800 p-6 rounded-2xl shadow-2xl border border-gray-700 max-w-lg w-full"
+                class="bg-gray-800 p-6 rounded-2xl shadow-2xl border border-gray-700 max-w-2xl w-full max-h-[80vh] overflow-y-auto"
               >
                 <div class="flex justify-between items-center mb-4">
                   <h3 class="text-lg font-semibold text-white">Nostr Keys</h3>
@@ -355,34 +388,81 @@
                   </button>
                 </div>
 
-                <div class="space-y-4">
+                <div class="space-y-6">
                   <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-2"
-                      >Public Key</label
-                    >
-                    <div
-                      class="bg-gray-700 p-3 rounded-lg border border-gray-600"
-                    >
-                      <code class="text-xs text-green-400 break-all font-mono"
-                        >${nostrKeys.pubkey || 'Not generated'}</code
-                      >
+                    <h4 class="text-md font-semibold text-dm-purple mb-3">
+                      Character Keys (${config.name})
+                    </h4>
+                    <div class="space-y-3">
+                      <div>
+                        <label
+                          class="block text-sm font-medium text-gray-300 mb-2"
+                          >Public Key</label
+                        >
+                        <div
+                          class="bg-gray-700 p-3 rounded-lg border border-gray-600"
+                        >
+                          <code
+                            class="text-xs text-green-400 break-all font-mono"
+                            >${nostrKeys.pubkey || 'Not generated'}</code
+                          >
+                        </div>
+                      </div>
+                      <div>
+                        <label
+                          class="block text-sm font-medium text-gray-300 mb-2"
+                          >Private Key</label
+                        >
+                        <div
+                          class="bg-gray-700 p-3 rounded-lg border border-gray-600"
+                        >
+                          <code class="text-xs text-red-400 break-all font-mono"
+                            >${nostrKeys.privkey || 'Not generated'}</code
+                          >
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">
+                          ⚠️ Keep your private key secret!
+                        </p>
+                      </div>
                     </div>
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-2"
-                      >Private Key</label
-                    >
-                    <div
-                      class="bg-gray-700 p-3 rounded-lg border border-gray-600"
-                    >
-                      <code class="text-xs text-red-400 break-all font-mono"
-                        >${nostrKeys.privkey || 'Not generated'}</code
-                      >
+                    <h4 class="text-md font-semibold text-purple-400 mb-3">
+                      Dungeon Master Keys
+                    </h4>
+                    <div class="space-y-3">
+                      <div>
+                        <label
+                          class="block text-sm font-medium text-gray-300 mb-2"
+                          >Public Key</label
+                        >
+                        <div
+                          class="bg-gray-700 p-3 rounded-lg border border-gray-600"
+                        >
+                          <code
+                            class="text-xs text-green-400 break-all font-mono"
+                            >${dmKeys.pubkey || 'Not generated'}</code
+                          >
+                        </div>
+                      </div>
+                      <div>
+                        <label
+                          class="block text-sm font-medium text-gray-300 mb-2"
+                          >Private Key</label
+                        >
+                        <div
+                          class="bg-gray-700 p-3 rounded-lg border border-gray-600"
+                        >
+                          <code class="text-xs text-red-400 break-all font-mono"
+                            >${dmKeys.privkey || 'Not generated'}</code
+                          >
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">
+                          ⚠️ Keep your private key secret!
+                        </p>
+                      </div>
                     </div>
-                    <p class="text-xs text-gray-500 mt-1">
-                      ⚠️ Keep your private key secret!
-                    </p>
                   </div>
                 </div>
 
@@ -527,6 +607,13 @@
           // Generate new nostr keypair for this character
           const keypair = generateNostrKeypair()
           saveNostrKeys(keypair.privkey, keypair.pubkey)
+
+          // Generate DM keypair if it doesn't exist
+          const dmKeys = loadDMKeys()
+          if (!dmKeys.privkey || !dmKeys.pubkey) {
+            const dmKeypair = generateNostrKeypair()
+            saveDMKeys(dmKeypair.privkey, dmKeypair.pubkey)
+          }
 
           localStorage.setItem('GAME_CONFIG', JSON.stringify(config))
           setGameConfig(config)
