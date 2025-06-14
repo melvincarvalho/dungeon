@@ -169,7 +169,7 @@
       }
 
       function buildSystemPrompt({ genre, role, name, starter }) {
-        return `You are a masterful Dungeon Master guiding an immersive role‑playing adventure set in a richly detailed ${genre} world. Your responses MUST follow these rules:\n\n1. RESPOND TO PLAYER ACTIONS:\n   • Always incorporate and react to the player's most recent action\n   • Make the player feel their choices directly impact the story\n   • Progress the narrative based on the player's decisions\n\n2. CONTENT RULES:\n   • NEVER ask direct questions (e.g., "What do you do?")\n   • ALWAYS use NPCs to interact through dialogue/actions\n   • ALWAYS use proper punctuation\n   • RESPOND ONLY AS DUNGEON MASTER\n   • Keep responses concise (max 150 tokens)\n\n3. NARRATIVE FLOW:\n   • Describe immediate consequences of player actions\n   • Advance the story with new challenges/revelations\n   • Maintain consistent world logic\n\nADVENTURE START: ${name} the ${role} begins with:\n${starter}`
+        return `You are a masterful DungeonMastr guiding an immersive role‑playing adventure set in a richly detailed ${genre} world. Your responses MUST follow these rules:\n\n1. RESPOND TO PLAYER ACTIONS:\n   • Always incorporate and react to the player's most recent action\n   • Make the player feel their choices directly impact the story\n   • Progress the narrative based on the player's decisions\n\n2. CONTENT RULES:\n   • NEVER ask direct questions (e.g., "What do you do?")\n   • ALWAYS use NPCs to interact through dialogue/actions\n   • ALWAYS use proper punctuation\n   • RESPOND ONLY AS DUNGEONMASTR\n   • Keep responses concise (max 150 tokens)\n\n3. NARRATIVE FLOW:\n   • Describe immediate consequences of player actions\n   • Advance the story with new challenges/revelations\n   • Maintain consistent world logic\n\nADVENTURE START: ${name} the ${role} begins with:\n${starter}`
       }
 
       // ----- helpers --------------------------------------------------------
@@ -286,14 +286,14 @@
 
       function generateDMProfile(keys) {
         const profileData = {
-          name: 'The Dungeon Master',
+          name: 'The DungeonMastr',
           about:
             'Weaver of tales, keeper of secrets, and guide through infinite realms of adventure. I shape worlds and challenge heroes across all genres and realities.',
-          picture: `https://api.dicebear.com/7.x/bottts/svg?seed=dungeonmaster&backgroundColor=9d79d6`,
+          picture: `https://api.dicebear.com/7.x/bottts/svg?seed=dungeonmastr&backgroundColor=9d79d6`,
           website: 'https://melvincarvalho.github.io/dungeon/',
-          display_name: 'Dungeon Master',
+          display_name: 'DungeonMastr',
           nip05: 'dm@nostr',
-          lud16: 'dungeonmaster@getalby.com',
+          lud16: 'dungeonmastr@getalby.com',
           banner:
             'https://api.dicebear.com/7.x/shapes/svg?seed=mystical&backgroundColor=1e1e1e',
           bot: true,
@@ -472,9 +472,7 @@
             role: 'assistant',
             content: `*A mysterious figure steps from the shadows, their eyes gleaming with ancient wisdom*
 
-Greetings, ${config.name} the ${
-              config.role
-            }. I am your Dungeon Master for this ${
+Greetings, ${config.name} the ${config.role}. I am your DungeonMastr for this ${
               config.genre
             } adventure. I shall weave the tale of your journey, inhabit the characters you meet, and challenge you with the perils that await.
 
@@ -666,7 +664,7 @@ ${getRoleStarter(
               ['t', 'nostr-rpg'],
               ['t', config.genre.toLowerCase()],
               ['t', config.role.toLowerCase().replace(/\s+/g, '')],
-              ['t', messageType === 'assistant' ? 'dungeonmaster' : 'player']
+              ['t', messageType === 'assistant' ? 'dungeonmastr' : 'player']
             ]
 
             // Add character name as a tag
@@ -677,7 +675,7 @@ ${getRoleStarter(
             // Format the content with RPG context
             const formattedContent =
               messageType === 'assistant'
-                ? `🎭 Dungeon Master:\n\n${messageContent}\n\n#RPG #NostrRPG #${config.genre} #DungeonMaster`
+                ? `🎭 DungeonMastr:\n\n${messageContent}\n\n#RPG #NostrRPG #${config.genre} #DungeonMastr`
                 : `⚔️ ${config.name} the ${
                     config.role
                   }:\n\n${messageContent}\n\n#RPG #NostrRPG #${
@@ -913,7 +911,7 @@ ${getRoleStarter(
 
                   <div>
                     <h4 class="text-md font-semibold text-purple-400 mb-3">
-                      Dungeon Master Keys
+                      DungeonMastr Keys
                     </h4>
                     <div class="space-y-3">
                       <div>
@@ -1090,7 +1088,7 @@ ${getRoleStarter(
                   html`
                     <div class="space-y-4">
                       <h4 class="text-md font-semibold text-purple-400">
-                        Dungeon Master Profile
+                        DungeonMastr Profile
                       </h4>
                       <div
                         class="p-4 rounded-lg border ${isDarkMode
