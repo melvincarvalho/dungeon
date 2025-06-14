@@ -24,7 +24,7 @@
       )
     </script>
   </head>
-  <body class="h-full bg-gray-900 text-gray-100 font-sans">
+  <body class="h-full font-sans">
     <div id="app" class="h-full flex flex-col"></div>
     <script type="module">
       import {
@@ -236,7 +236,7 @@
       }
 
       // ----- components -----------------------------------------------------
-      function Config({ onStart }) {
+      function Config({ onStart, isDarkMode, onToggleTheme }) {
         const [randomChar] = useState(() => generateRandomCharacter())
         const [genre, setGenre] = useState(randomChar.genre)
         const [role, setRole] = useState(randomChar.role)
@@ -255,11 +255,24 @@
 
         return html`
           <div
-            class="min-h-full flex items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4"
+            class="min-h-full flex items-center justify-center p-4 ${isDarkMode
+              ? 'bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900'
+              : 'bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50'}"
           >
             <div
-              class="bg-gray-800 p-8 rounded-2xl shadow-2xl border border-gray-700 max-w-md w-full"
+              class="p-8 rounded-2xl shadow-2xl border max-w-md w-full relative ${isDarkMode
+                ? 'bg-gray-800 border-gray-700'
+                : 'bg-white border-gray-200'}"
             >
+              <button
+                onClick=${onToggleTheme}
+                class="absolute top-4 right-4 p-2 rounded-lg transition-all ${isDarkMode
+                  ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400'
+                  : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}"
+                title="Toggle theme"
+              >
+                ${isDarkMode ? '☀️' : '🌙'}
+              </button>
               <h1
                 class="text-3xl font-bold text-center mb-8 text-transparent bg-clip-text bg-gradient-to-r from-dm-purple to-player-green"
               >
@@ -268,13 +281,18 @@
 
               <div class="space-y-6">
                 <div>
-                  <label class="block text-sm font-medium text-gray-300 mb-2"
+                  <label
+                    class="block text-sm font-medium mb-2 ${isDarkMode
+                      ? 'text-gray-300'
+                      : 'text-gray-700'}"
                     >Genre</label
                   >
                   ${html`<select
                     value=${genre}
                     onInput=${e => setGenre(e.target.value)}
-                    class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-dm-purple focus:border-transparent transition-all"
+                    class="w-full rounded-lg px-4 py-3 focus:ring-2 focus:ring-dm-purple focus:border-transparent transition-all ${isDarkMode
+                      ? 'bg-gray-700 border border-gray-600 text-white'
+                      : 'bg-white border border-gray-300 text-gray-900'}"
                   >
                     ${Object.keys(GENRES).map(
                       g => html`<option value=${g}>${g}</option>`
@@ -283,13 +301,18 @@
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-300 mb-2"
+                  <label
+                    class="block text-sm font-medium mb-2 ${isDarkMode
+                      ? 'text-gray-300'
+                      : 'text-gray-700'}"
                     >Role</label
                   >
                   ${html`<select
                     value=${role}
                     onInput=${e => setRole(e.target.value)}
-                    class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-dm-purple focus:border-transparent transition-all"
+                    class="w-full rounded-lg px-4 py-3 focus:ring-2 focus:ring-dm-purple focus:border-transparent transition-all ${isDarkMode
+                      ? 'bg-gray-700 border border-gray-600 text-white'
+                      : 'bg-white border border-gray-300 text-gray-900'}"
                   >
                     ${GENRES[genre].map(
                       r => html`<option value=${r}>${r}</option>`
@@ -298,14 +321,19 @@
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-300 mb-2"
+                  <label
+                    class="block text-sm font-medium mb-2 ${isDarkMode
+                      ? 'text-gray-300'
+                      : 'text-gray-700'}"
                     >Character Name</label
                   >
                   <input
                     type="text"
                     value=${name}
                     onInput=${e => setName(e.target.value)}
-                    class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-dm-purple focus:border-transparent transition-all"
+                    class="w-full rounded-lg px-4 py-3 focus:ring-2 focus:ring-dm-purple focus:border-transparent transition-all ${isDarkMode
+                      ? 'bg-gray-700 border border-gray-600 text-white placeholder-gray-400'
+                      : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-500'}"
                     placeholder="Enter your character's name"
                   />
                 </div>
@@ -313,7 +341,9 @@
                 <div class="flex gap-3">
                   <button
                     onClick=${randomizeCharacter}
-                    class="bg-gray-600 hover:bg-gray-500 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
+                    class="font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg ${isDarkMode
+                      ? 'bg-gray-600 hover:bg-gray-500 text-white'
+                      : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}"
                   >
                     🎲 Randomize
                   </button>
@@ -330,7 +360,13 @@
         `
       }
 
-      function Chat({ apiKey, config, onNewCharacter }) {
+      function Chat({
+        apiKey,
+        config,
+        onNewCharacter,
+        isDarkMode,
+        onToggleTheme
+      }) {
         const scrollRef = useRef(null)
         const [messages, setMessages] = useState(() => {
           const sys = {
@@ -407,19 +443,29 @@ ${getRoleStarter(
               class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
             >
               <div
-                class="bg-gray-800 p-6 rounded-2xl shadow-2xl border border-gray-700 max-w-sm w-full"
+                class="p-6 rounded-2xl shadow-2xl border max-w-sm w-full ${isDarkMode
+                  ? 'bg-gray-800 border-gray-700'
+                  : 'bg-white border-gray-200'}"
               >
-                <h3 class="text-lg font-semibold text-white mb-4">
+                <h3
+                  class="text-lg font-semibold mb-4 ${isDarkMode
+                    ? 'text-white'
+                    : 'text-gray-900'}"
+                >
                   Start New Adventure?
                 </h3>
-                <p class="text-gray-400 mb-6">
+                <p
+                  class="mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}"
+                >
                   This will create a new character and reset your current
                   adventure. This action cannot be undone.
                 </p>
                 <div class="flex gap-3">
                   <button
                     onClick=${() => setShowConfirm(false)}
-                    class="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-all"
+                    class="flex-1 py-2 px-4 rounded-lg transition-all ${isDarkMode
+                      ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                      : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}"
                   >
                     Cancel
                   </button>
@@ -444,13 +490,23 @@ ${getRoleStarter(
               class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
             >
               <div
-                class="bg-gray-800 p-6 rounded-2xl shadow-2xl border border-gray-700 max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+                class="p-6 rounded-2xl shadow-2xl border max-w-2xl w-full max-h-[80vh] overflow-y-auto ${isDarkMode
+                  ? 'bg-gray-800 border-gray-700'
+                  : 'bg-white border-gray-200'}"
               >
                 <div class="flex justify-between items-center mb-4">
-                  <h3 class="text-lg font-semibold text-white">Nostr Keys</h3>
+                  <h3
+                    class="text-lg font-semibold ${isDarkMode
+                      ? 'text-white'
+                      : 'text-gray-900'}"
+                  >
+                    Nostr Keys
+                  </h3>
                   <button
                     onClick=${() => setShowKeys(false)}
-                    class="text-gray-400 hover:text-white text-xl"
+                    class="text-xl ${isDarkMode
+                      ? 'text-gray-400 hover:text-white'
+                      : 'text-gray-600 hover:text-gray-900'}"
                   >
                     ×
                   </button>
@@ -464,31 +520,48 @@ ${getRoleStarter(
                     <div class="space-y-3">
                       <div>
                         <label
-                          class="block text-sm font-medium text-gray-300 mb-2"
+                          class="block text-sm font-medium mb-2 ${isDarkMode
+                            ? 'text-gray-300'
+                            : 'text-gray-700'}"
                           >Public Key</label
                         >
                         <div
-                          class="bg-gray-700 p-3 rounded-lg border border-gray-600"
+                          class="p-3 rounded-lg border ${isDarkMode
+                            ? 'bg-gray-700 border-gray-600'
+                            : 'bg-gray-50 border-gray-300'}"
                         >
                           <code
-                            class="text-xs text-green-400 break-all font-mono"
+                            class="text-xs break-all font-mono ${isDarkMode
+                              ? 'text-green-400'
+                              : 'text-green-600'}"
                             >${nostrKeys.pubkey || 'Not generated'}</code
                           >
                         </div>
                       </div>
                       <div>
                         <label
-                          class="block text-sm font-medium text-gray-300 mb-2"
+                          class="block text-sm font-medium mb-2 ${isDarkMode
+                            ? 'text-gray-300'
+                            : 'text-gray-700'}"
                           >Private Key</label
                         >
                         <div
-                          class="bg-gray-700 p-3 rounded-lg border border-gray-600"
+                          class="p-3 rounded-lg border ${isDarkMode
+                            ? 'bg-gray-700 border-gray-600'
+                            : 'bg-gray-50 border-gray-300'}"
                         >
-                          <code class="text-xs text-red-400 break-all font-mono"
+                          <code
+                            class="text-xs break-all font-mono ${isDarkMode
+                              ? 'text-red-400'
+                              : 'text-red-600'}"
                             >${nostrKeys.privkey || 'Not generated'}</code
                           >
                         </div>
-                        <p class="text-xs text-gray-500 mt-1">
+                        <p
+                          class="text-xs mt-1 ${isDarkMode
+                            ? 'text-gray-500'
+                            : 'text-gray-400'}"
+                        >
                           ⚠️ Keep your private key secret!
                         </p>
                       </div>
@@ -502,31 +575,48 @@ ${getRoleStarter(
                     <div class="space-y-3">
                       <div>
                         <label
-                          class="block text-sm font-medium text-gray-300 mb-2"
+                          class="block text-sm font-medium mb-2 ${isDarkMode
+                            ? 'text-gray-300'
+                            : 'text-gray-700'}"
                           >Public Key</label
                         >
                         <div
-                          class="bg-gray-700 p-3 rounded-lg border border-gray-600"
+                          class="p-3 rounded-lg border ${isDarkMode
+                            ? 'bg-gray-700 border-gray-600'
+                            : 'bg-gray-50 border-gray-300'}"
                         >
                           <code
-                            class="text-xs text-green-400 break-all font-mono"
+                            class="text-xs break-all font-mono ${isDarkMode
+                              ? 'text-green-400'
+                              : 'text-green-600'}"
                             >${dmKeys.pubkey || 'Not generated'}</code
                           >
                         </div>
                       </div>
                       <div>
                         <label
-                          class="block text-sm font-medium text-gray-300 mb-2"
+                          class="block text-sm font-medium mb-2 ${isDarkMode
+                            ? 'text-gray-300'
+                            : 'text-gray-700'}"
                           >Private Key</label
                         >
                         <div
-                          class="bg-gray-700 p-3 rounded-lg border border-gray-600"
+                          class="p-3 rounded-lg border ${isDarkMode
+                            ? 'bg-gray-700 border-gray-600'
+                            : 'bg-gray-50 border-gray-300'}"
                         >
-                          <code class="text-xs text-red-400 break-all font-mono"
+                          <code
+                            class="text-xs break-all font-mono ${isDarkMode
+                              ? 'text-red-400'
+                              : 'text-red-600'}"
                             >${dmKeys.privkey || 'Not generated'}</code
                           >
                         </div>
-                        <p class="text-xs text-gray-500 mt-1">
+                        <p
+                          class="text-xs mt-1 ${isDarkMode
+                            ? 'text-gray-500'
+                            : 'text-gray-400'}"
+                        >
                           ⚠️ Keep your private key secret!
                         </p>
                       </div>
@@ -548,7 +638,9 @@ ${getRoleStarter(
 
         return html`${confirmModal}${keysModal}
           <header
-            class="bg-gray-800 border-b border-gray-700 px-6 py-4 shadow-lg"
+            class="border-b px-6 py-4 shadow-lg ${isDarkMode
+              ? 'bg-gray-800 border-gray-700'
+              : 'bg-white border-gray-200'}"
           >
             <div class="flex items-center justify-between">
               <div class="flex items-center space-x-4">
@@ -558,22 +650,37 @@ ${getRoleStarter(
                   ${config.name} the ${config.role}
                 </h2>
                 <span
-                  class="text-sm text-gray-400 bg-gray-700 px-3 py-1 rounded-full"
+                  class="text-sm px-3 py-1 rounded-full ${isDarkMode
+                    ? 'text-gray-400 bg-gray-700'
+                    : 'text-gray-600 bg-gray-100'}"
                 >
                   ${config.genre}
                 </span>
               </div>
               <div class="flex items-center gap-2">
                 <button
+                  onClick=${onToggleTheme}
+                  class="text-sm p-2 rounded-lg transition-all duration-200 ${isDarkMode
+                    ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}"
+                  title="Toggle theme"
+                >
+                  ${isDarkMode ? '☀️' : '🌙'}
+                </button>
+                <button
                   onClick=${() => setShowKeys(true)}
-                  class="text-xs bg-gray-700 hover:bg-gray-600 text-gray-400 hover:text-gray-300 px-2 py-1 rounded transition-all duration-200 border border-gray-600 hover:border-gray-500"
+                  class="text-xs px-2 py-1 rounded transition-all duration-200 border ${isDarkMode
+                    ? 'bg-gray-700 hover:bg-gray-600 text-gray-400 hover:text-gray-300 border-gray-600 hover:border-gray-500'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800 border-gray-300 hover:border-gray-400'}"
                   title="View Nostr Keys"
                 >
                   🔑
                 </button>
                 <button
                   onClick=${() => setShowConfirm(true)}
-                  class="text-sm bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white px-3 py-2 rounded-lg transition-all duration-200 border border-gray-600 hover:border-gray-500"
+                  class="text-sm px-3 py-2 rounded-lg transition-all duration-200 border ${isDarkMode
+                    ? 'bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white border-gray-600 hover:border-gray-500'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 border-gray-300 hover:border-gray-400'}"
                 >
                   New Character
                 </button>
@@ -583,7 +690,9 @@ ${getRoleStarter(
 
           <main
             ref=${scrollRef}
-            class="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-gray-900 to-gray-800"
+            class="flex-1 overflow-y-auto p-6 space-y-4 ${isDarkMode
+              ? 'bg-gradient-to-b from-gray-900 to-gray-800'
+              : 'bg-gradient-to-b from-gray-50 to-white'}"
           >
             ${messages
               .filter(m => m.role !== 'system')
@@ -597,7 +706,9 @@ ${getRoleStarter(
                     <div
                       class="max-w-2xl px-4 py-3 rounded-2xl shadow-lg ${m.role ===
                       'assistant'
-                        ? 'bg-gray-700 border-l-4 border-dm-purple text-gray-100'
+                        ? isDarkMode
+                          ? 'bg-gray-700 border-l-4 border-dm-purple text-gray-100'
+                          : 'bg-purple-50 border-l-4 border-dm-purple text-gray-800'
                         : 'bg-gradient-to-r from-player-green to-green-600 text-white ml-auto'}"
                     >
                       <div class="whitespace-pre-wrap">${m.content}</div>
@@ -607,7 +718,9 @@ ${getRoleStarter(
             ${loading &&
             html`<div class="flex justify-start">
               <div
-                class="bg-gray-700 border-l-4 border-dm-purple text-gray-100 px-4 py-3 rounded-2xl shadow-lg animate-pulse"
+                class="border-l-4 border-dm-purple px-4 py-3 rounded-2xl shadow-lg animate-pulse ${isDarkMode
+                  ? 'bg-gray-700 text-gray-100'
+                  : 'bg-purple-50 text-gray-800'}"
               >
                 <div class="flex space-x-1">
                   <div
@@ -627,7 +740,9 @@ ${getRoleStarter(
           </main>
 
           <form
-            class="bg-gray-800 border-t border-gray-700 p-4 shadow-lg"
+            class="border-t p-4 shadow-lg ${isDarkMode
+              ? 'bg-gray-800 border-gray-700'
+              : 'bg-white border-gray-200'}"
             onSubmit=${e => {
               e.preventDefault()
               send()
@@ -639,7 +754,9 @@ ${getRoleStarter(
                 value=${input}
                 placeholder="Describe your action..."
                 onInput=${e => setInput(e.target.value)}
-                class="flex-1 bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-dm-purple focus:border-transparent transition-all placeholder-gray-400"
+                class="flex-1 border rounded-lg px-4 py-3 focus:ring-2 focus:ring-dm-purple focus:border-transparent transition-all ${isDarkMode
+                  ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'}"
                 disabled=${loading}
               />
               <button
@@ -662,6 +779,10 @@ ${getRoleStarter(
           return saved ? JSON.parse(saved) : null
         })
         const [keyInput, setKeyInput] = useState('')
+        const [isDarkMode, setIsDarkMode] = useState(() => {
+          const saved = localStorage.getItem('THEME_MODE')
+          return saved !== 'light' // Default to dark, unless explicitly set to light
+        })
 
         function saveKey(key) {
           if (key && key.trim()) {
@@ -694,6 +815,12 @@ ${getRoleStarter(
           setGameConfig(null)
         }
 
+        function toggleTheme() {
+          const newMode = !isDarkMode
+          setIsDarkMode(newMode)
+          localStorage.setItem('THEME_MODE', newMode ? 'dark' : 'light')
+        }
+
         // Key modal shown if missing
         const keyModal =
           !apiKey &&
@@ -701,7 +828,9 @@ ${getRoleStarter(
             class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
           >
             <div
-              class="bg-gray-800 p-8 rounded-2xl shadow-2xl border border-gray-700 max-w-md w-full"
+              class="p-8 rounded-2xl shadow-2xl border max-w-md w-full ${isDarkMode
+                ? 'bg-gray-800 border-gray-700'
+                : 'bg-white border-gray-200'}"
             >
               <div class="text-center mb-6">
                 <h1
@@ -709,7 +838,11 @@ ${getRoleStarter(
                 >
                   OpenAI API Key Required
                 </h1>
-                <p class="text-gray-400 text-sm">
+                <p
+                  class="text-sm ${isDarkMode
+                    ? 'text-gray-400'
+                    : 'text-gray-600'}"
+                >
                   Enter your OpenAI API key to start your adventure
                 </p>
               </div>
@@ -723,7 +856,9 @@ ${getRoleStarter(
                   onKeydown=${e => {
                     if (e.key === 'Enter') saveKey(keyInput)
                   }}
-                  class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-dm-purple focus:border-transparent transition-all placeholder-gray-500"
+                  class="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-dm-purple focus:border-transparent transition-all ${isDarkMode
+                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500'
+                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'}"
                 />
 
                 <button
@@ -734,22 +869,40 @@ ${getRoleStarter(
                   Save & Continue
                 </button>
 
-                <p class="text-xs text-gray-500 text-center">
+                <p
+                  class="text-xs text-center ${isDarkMode
+                    ? 'text-gray-500'
+                    : 'text-gray-400'}"
+                >
                   Your API key is stored locally in your browser
                 </p>
               </div>
             </div>
           </div>`
 
-        return html`${keyModal}
-        ${!gameConfig && apiKey && html`<${Config} onStart=${startNewGame} />`}
-        ${gameConfig &&
-        apiKey &&
-        html`<${Chat}
-          apiKey=${apiKey}
-          config=${gameConfig}
-          onNewCharacter=${resetCharacter}
-        />`}`
+        return html`<div
+          class="${isDarkMode
+            ? 'bg-gray-900 text-gray-100'
+            : 'bg-gray-50 text-gray-900'} h-full"
+        >
+          ${keyModal}
+          ${!gameConfig &&
+          apiKey &&
+          html`<${Config}
+            onStart=${startNewGame}
+            isDarkMode=${isDarkMode}
+            onToggleTheme=${toggleTheme}
+          />`}
+          ${gameConfig &&
+          apiKey &&
+          html`<${Chat}
+            apiKey=${apiKey}
+            config=${gameConfig}
+            onNewCharacter=${resetCharacter}
+            isDarkMode=${isDarkMode}
+            onToggleTheme=${toggleTheme}
+          />`}
+        </div>`
       }
 
       render(html`<${App} />`, document.getElementById('app'))
