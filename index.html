@@ -233,7 +233,7 @@
       }
 
       function buildSystemPrompt({ genre, role, name, starter }) {
-        return `You are a masterful DungeonMastr guiding an immersive role‑playing adventure set in a richly detailed ${genre} world. Your responses MUST follow these rules:\n\n1. RESPOND TO PLAYER ACTIONS:\n   • Always incorporate and react to the player's most recent action\n   • Make the player feel their choices directly impact the story\n   • Progress the narrative based on the player's decisions\n\n2. CONTENT RULES:\n   • NEVER ask direct questions (e.g., "What do you do?")\n   • ALWAYS use NPCs to interact through dialogue/actions\n   • ALWAYS use proper punctuation\n   • RESPOND ONLY AS DUNGEONMASTR\n   • Keep responses concise (max 150 tokens)\n\n3. NARRATIVE FLOW:\n   • Describe immediate consequences of player actions\n   • Advance the story with new challenges/revelations\n   • Maintain consistent world logic\n\nADVENTURE START: ${name} the ${role} begins with:\n${starter}`
+        return `You are an ELITE DungeonMastr crafting a thrilling ${genre} adventure for ${name} the ${role}. This is HIGH-STAKES storytelling where ACTIONS HAVE REAL CONSEQUENCES.\n\n🎭 CORE PRINCIPLES:\n• DANGER IS REAL - Poor decisions can injure, maim, or KILL the character\n• CHOICES MATTER - Every action reshapes the world and story\n• NO SAFETY NET - Foolish risks lead to serious consequences\n• IMMERSIVE WORLD - Rich details, living NPCs, dynamic environments\n• DRAMATIC TENSION - Keep players on edge with stakes that matter\n\n⚔️ CONSEQUENCE SYSTEM:\n• MINOR MISTAKES → Setbacks, injuries, lost resources\n• MAJOR BLUNDERS → Severe wounds, equipment loss, story complications\n• FATAL ERRORS → Character death (fighting dragons unprepared, ignoring deadly warnings, etc.)\n• SMART PLAY → Rewards, advantages, story progression\n\n🌟 STORYTELLING RULES:\n• React immediately to player actions with vivid consequences\n• Use NPCs actively - they speak, act, and react authentically\n• Create living, breathing worlds that respond to the player\n• Build tension through environmental dangers and time pressure\n• Reward clever thinking, punish recklessness\n• NEVER ask "What do you do?" - Always advance the action\n• Keep responses under 150 words but pack them with impact\n\n🚨 DEATH CONDITIONS:\n• Attacking vastly superior foes without strategy\n• Ignoring clear deadly warnings (poison, traps, etc.)\n• Making multiple consecutive poor survival choices\n• Failing critical moments (hanging from cliffs, drowning, etc.)\n\nWhen death occurs: Describe it dramatically but respectfully, then immediately offer the player a chance to create a new character to continue the adventure.\n\n${starter} - LET THE ADVENTURE BEGIN!`
       }
 
       // ----- helpers --------------------------------------------------------
@@ -637,8 +637,8 @@
             })
           }
 
-          // Add initial DM introduction
-          const dmIntro = {
+          // Fallback DM introduction
+          const fallbackDmIntro = {
             role: 'assistant',
             content: `*A mysterious figure steps from the shadows, their eyes gleaming with ancient wisdom*
 
@@ -654,7 +654,7 @@ ${getRoleStarter(
 *The DM gestures, and your adventure begins*`
           }
 
-          return [sys, dmIntro]
+          return [sys, fallbackDmIntro]
         })
         const [input, setInput] = useState('')
         const [loading, setLoading] = useState(false)
@@ -672,6 +672,67 @@ ${getRoleStarter(
 
         const nostrKeys = loadNostrKeys()
         const dmKeys = loadDMKeys()
+
+        // Generate dynamic introduction with GPT on component mount
+        useEffect(() => {
+          async function generateDynamicIntro() {
+            try {
+              const introPrompt = `Create a dramatic, engaging introduction for a ${
+                config.genre
+              } RPG adventure. The character is ${config.name} the ${
+                config.role
+              }. ${getRoleStarter(
+                config.genre,
+                config.role
+              )} a sudden threat emerges. 
+
+Requirements:
+- Be immersive and atmospheric
+- Set up immediate danger/conflict 
+- Use rich sensory details
+- End with a cliffhanger that demands action
+- Maximum 120 words
+- No questions - pure narrative tension`
+
+              const introMessages = [
+                {
+                  role: 'system',
+                  content:
+                    'You are an elite RPG storyteller creating the opening scene of an adventure. Make it gripping and cinematic.'
+                },
+                { role: 'user', content: introPrompt }
+              ]
+
+              const dynamicIntro = await callOpenAI({
+                key: apiKey,
+                messages: introMessages
+              })
+
+              if (dynamicIntro && dynamicIntro.trim()) {
+                setMessages(prevMessages => {
+                  const newMessages = [...prevMessages]
+                  // Replace the fallback intro (index 1) with the dynamic one
+                  newMessages[1] = {
+                    role: 'assistant',
+                    content: dynamicIntro
+                  }
+                  return newMessages
+                })
+              }
+            } catch (error) {
+              console.log(
+                'Failed to generate dynamic intro, using fallback:',
+                error
+              )
+              // Fallback is already in place, so we don't need to do anything
+            }
+          }
+
+          // Only generate if we have an API key
+          if (apiKey && apiKey.trim()) {
+            generateDynamicIntro()
+          }
+        }, []) // Empty dependency array means this runs once on mount
 
         // Generate profiles
         const characterProfile = nostrKeys.pubkey
