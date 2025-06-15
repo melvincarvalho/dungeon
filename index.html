@@ -790,10 +790,10 @@ ${getRoleStarter(
             // Format the content with RPG context
             const formattedContent =
               messageType === 'assistant'
-                ? `🎭 DungeonMastr:\n\n${messageContent}\n\n#RPG #NostrRPG #${config.genre} #DungeonMastr`
+                ? `🎭 DungeonMastr:\n\n${messageContent}\n\n#RPG #NostrRPG #DungeonMastr #${config.genre} #DungeonMastr`
                 : `⚔️ ${config.name} the ${
                     config.role
-                  }:\n\n${messageContent}\n\n#RPG #NostrRPG #${
+                  }:\n\n${messageContent}\n\n#RPG #NostrRPG #DungeonMastr #${
                     config.genre
                   } #${config.role.replace(/\s+/g, '')} #Player`
 
