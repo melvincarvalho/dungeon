@@ -40,34 +40,69 @@
       // ----- static data ----------------------------------------------------
       const GENRES = {
         Fantasy: [
-          'Noble',
-          'Peasant',
-          'Mage',
-          'Knight',
-          'Ranger',
-          'Thief',
-          'Bard',
+          'Warrior',
+          'Wizard',
+          'Rogue',
           'Cleric',
-          'Assassin',
-          'Paladin'
+          'Ranger',
+          'Paladin',
+          'Barbarian',
+          'Sorcerer',
+          'Druid',
+          'Bard'
         ],
-        'Sci‑Fi': [
-          'Space Marine',
-          'Scientist',
-          'Android',
+        SciFi: [
           'Pilot',
           'Engineer',
-          'Bounty Hunter',
-          'Starship Captain'
-        ],
-        Cyberpunk: [
+          'Soldier',
+          'Scientist',
+          'Medic',
           'Hacker',
-          'Street Samurai',
-          'Corporate Agent',
-          'Techie',
-          'Cyborg'
+          'Captain',
+          'Android',
+          'Bounty Hunter',
+          'Psychic'
         ],
-        'Post‑Apocalyptic': ['Survivor', 'Scavenger', 'Raider', 'Medic']
+        Horror: [
+          'Investigator',
+          'Survivor',
+          'Occultist',
+          'Detective',
+          'Doctor',
+          'Journalist',
+          'Student',
+          'Police Officer'
+        ],
+        Modern: [
+          'Detective',
+          'Soldier',
+          'Hacker',
+          'Doctor',
+          'Lawyer',
+          'Journalist',
+          'Criminal',
+          'Agent'
+        ],
+        Superhero: [
+          'Hero',
+          'Vigilante',
+          'Mutant',
+          'Gadgeteer',
+          'Psychic',
+          'Speedster',
+          'Tank',
+          'Healer'
+        ],
+        Western: [
+          'Gunslinger',
+          'Sheriff',
+          'Outlaw',
+          'Bounty Hunter',
+          'Gambler',
+          'Preacher',
+          'Native Warrior',
+          'Rancher'
+        ]
       }
 
       const RANDOM_NAMES = [
@@ -107,40 +142,69 @@
 
       const ROLE_STARTERS = {
         Fantasy: {
-          Peasant: "You're toiling in the fields of a small village when",
-          Noble: "You're overseeing your estate's affairs when",
-          Mage: "You're studying ancient tomes in your tower when",
-          Knight: "You're training in the castle courtyard when",
-          Ranger: "You're tracking game in the deep forest when",
-          Thief: "You're casing a noble's manor in the city when",
-          Bard: "You're performing in a crowded tavern when",
-          Cleric: "You're tending to the sick in the temple when",
-          Assassin: "You're preparing for a contract in the shadows when",
-          Paladin: "You're praying at the altar of your deity when"
+          Warrior: "You're sharpening your blade at the village inn when",
+          Wizard: "You're studying ancient spells in your tower when",
+          Rogue: "You're sneaking through the shadows of the city when",
+          Cleric: "You're praying at the temple altar when",
+          Ranger: "You're tracking through the deep forest when",
+          Paladin: "You're defending the innocent at the town square when",
+          Barbarian: "You're celebrating victory in the tavern when",
+          Sorcerer: "You're practicing magic in your chambers when",
+          Druid: "You're communing with nature in the sacred grove when",
+          Bard: "You're performing for a crowd at the inn when"
         },
-        'Sci‑Fi': {
-          'Space Marine':
-            "You're conducting patrol on a derelict space station when",
-          Scientist: "You're analyzing alien samples in your lab when",
-          Android: "You're performing system diagnostics on your ship when",
+        SciFi: {
           Pilot: "You're navigating through an asteroid field when",
-          Engineer: "You're repairing the FTL drive when",
-          'Bounty Hunter': "You're tracking a target through a spaceport when",
-          'Starship Captain':
-            "You're commanding the bridge during warp travel when"
+          Engineer: "You're repairing the ship's systems when",
+          Soldier: "You're on patrol aboard the space station when",
+          Scientist: "You're analyzing alien samples in the lab when",
+          Medic: "You're treating wounded crew members when",
+          Hacker: "You're infiltrating enemy networks when",
+          Captain: "You're commanding the bridge during warp when",
+          Android: "You're running diagnostics on your systems when",
+          'Bounty Hunter':
+            "You're tracking your target through the spaceport when",
+          Psychic: "You're sensing disturbances in the void when"
         },
-        Cyberpunk: {
-          Hacker: "You're infiltrating a corporate network when",
-          'Street Samurai': "You're patrolling the neon‑lit streets when",
-          'Corporate Agent': "You're closing a deal in a high‑rise office when",
-          Techie: "You're modifying cyberware in your workshop when",
-          Cyborg: "You're calibrating your cybernetic enhancements when"
+        Horror: {
+          Investigator: "You're examining strange evidence when",
+          Survivor: "You're hiding in the abandoned building when",
+          Occultist: "You're studying forbidden texts when",
+          Detective: "You're investigating the crime scene when",
+          Doctor: "You're treating mysterious injuries when",
+          Journalist: "You're researching the disturbing story when",
+          Student: "You're studying late in the library when",
+          'Police Officer': "You're responding to a disturbing call when"
         },
-        'Post‑Apocalyptic': {
-          Survivor: "You're scavenging in the ruins of an old city when",
-          Scavenger: "You're searching a pre‑collapse bunker when",
-          Raider: "You're ambushing a convoy in the wasteland when",
-          Medic: "You're treating radiation sickness in your clinic when"
+        Modern: {
+          Detective: "You're investigating a complex case when",
+          Soldier: "You're on a covert mission when",
+          Hacker: "You're breaking into secure systems when",
+          Doctor: "You're working the emergency room when",
+          Lawyer: "You're preparing for a crucial trial when",
+          Journalist: "You're chasing a breaking story when",
+          Criminal: "You're planning your next heist when",
+          Agent: "You're conducting surveillance when"
+        },
+        Superhero: {
+          Hero: "You're patrolling the city rooftops when",
+          Vigilante: "You're hunting criminals in the night when",
+          Mutant: "You're discovering your new powers when",
+          Gadgeteer: "You're testing your latest invention when",
+          Psychic: "You're sensing danger across the city when",
+          Speedster: "You're racing to stop a crime when",
+          Tank: "You're standing guard over civilians when",
+          Healer: "You're tending to injured heroes when"
+        },
+        Western: {
+          Gunslinger: "You're standing at high noon when",
+          Sheriff: "You're keeping the peace in town when",
+          Outlaw: "You're planning your next robbery when",
+          'Bounty Hunter': "You're tracking a dangerous fugitive when",
+          Gambler: "You're playing cards in the saloon when",
+          Preacher: "You're delivering Sunday sermon when",
+          'Native Warrior': "You're protecting your tribal lands when",
+          Rancher: "You're herding cattle on the range when"
         }
       }
 
