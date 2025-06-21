@@ -699,6 +699,13 @@ ${getRoleStarter(
         const [publishedMessages, setPublishedMessages] = useState(() => {
           return JSON.parse(localStorage.getItem('published_messages') || '[]')
         })
+        const [imageAttachment, setImageAttachment] = useState({
+          show: false,
+          messageIndex: null,
+          messageContent: '',
+          messageType: '',
+          imageUrl: ''
+        })
 
         const nostrKeys = loadNostrKeys()
         const dmKeys = loadDMKeys()
@@ -942,10 +949,25 @@ Requirements:
           }
         }
 
-        async function publishMessageToNostr(
+        function showImageAttachmentModal(
           messageContent,
           messageType,
           messageIndex
+        ) {
+          setImageAttachment({
+            show: true,
+            messageIndex,
+            messageContent,
+            messageType,
+            imageUrl: ''
+          })
+        }
+
+        async function publishMessageToNostr(
+          messageContent,
+          messageType,
+          messageIndex,
+          attachedImageUrl = ''
         ) {
           setPublishingMessages(prev => ({ ...prev, [messageIndex]: true }))
 
@@ -1002,14 +1024,23 @@ Requirements:
             tags.push(...replyTags)
 
             // Format the content with RPG context
-            const formattedContent =
+            const baseContent =
               messageType === 'assistant'
-                ? `🎭 DungeonMastr:\n\n${messageContent}\n\n#RPG #NostrRPG #DungeonMastr #${config.genre} #DungeonMastr`
-                : `⚔️ ${config.name} the ${
-                    config.role
-                  }:\n\n${messageContent}\n\n#RPG #NostrRPG #DungeonMastr #${
+                ? `🎭 DungeonMastr:\n\n${messageContent}`
+                : `⚔️ ${config.name} the ${config.role}:\n\n${messageContent}`
+
+            const imageContent = attachedImageUrl
+              ? `\n\n${attachedImageUrl}`
+              : ''
+
+            const hashtags =
+              messageType === 'assistant'
+                ? `\n\n#RPG #NostrRPG #DungeonMastr #${config.genre} #DungeonMastr`
+                : `\n\n#RPG #NostrRPG #DungeonMastr #${
                     config.genre
                   } #${config.role.replace(/\s+/g, '')} #Player`
+
+            const formattedContent = baseContent + imageContent + hashtags
 
             // Create the event template
             const eventTemplate = {
@@ -1372,6 +1403,135 @@ Requirements:
             </div>
           `
 
+        const imageAttachmentModal =
+          imageAttachment.show &&
+          html`
+            <div
+              class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
+            >
+              <div
+                class="p-6 rounded-2xl shadow-2xl border max-w-md w-full ${isDarkMode
+                  ? 'bg-gray-800 border-gray-700'
+                  : 'bg-white border-gray-200'}"
+              >
+                <div class="flex justify-between items-center mb-4">
+                  <h3
+                    class="text-lg font-semibold ${isDarkMode
+                      ? 'text-white'
+                      : 'text-gray-900'}"
+                  >
+                    Attach Image
+                  </h3>
+                  <button
+                    onClick=${() =>
+                      setImageAttachment(prev => ({ ...prev, show: false }))}
+                    class="text-xl ${isDarkMode
+                      ? 'text-gray-400 hover:text-white'
+                      : 'text-gray-600 hover:text-gray-900'}"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div class="space-y-4">
+                  <div>
+                    <label
+                      class="block text-sm font-medium mb-2 ${isDarkMode
+                        ? 'text-gray-300'
+                        : 'text-gray-700'}"
+                    >
+                      Image URL
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://example.com/image.jpg"
+                      value=${imageAttachment.imageUrl}
+                      onInput=${e =>
+                        setImageAttachment(prev => ({
+                          ...prev,
+                          imageUrl: e.target.value
+                        }))}
+                      class="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-dm-purple focus:border-transparent transition-all ${isDarkMode
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'}"
+                    />
+                  </div>
+
+                  ${imageAttachment.imageUrl &&
+                  html`
+                    <div>
+                      <label
+                        class="block text-sm font-medium mb-2 ${isDarkMode
+                          ? 'text-gray-300'
+                          : 'text-gray-700'}"
+                      >
+                        Preview
+                      </label>
+                      <img
+                        src=${imageAttachment.imageUrl}
+                        alt="Image preview"
+                        class="w-full h-48 object-cover rounded-lg border ${isDarkMode
+                          ? 'border-gray-600'
+                          : 'border-gray-300'}"
+                        onError=${e => {
+                          e.target.style.display = 'none'
+                          e.target.nextSibling.style.display = 'block'
+                        }}
+                      />
+                      <div
+                        class="hidden w-full h-48 flex items-center justify-center rounded-lg border border-dashed ${isDarkMode
+                          ? 'border-gray-600 text-gray-400'
+                          : 'border-gray-300 text-gray-500'}"
+                      >
+                        ❌ Invalid image URL
+                      </div>
+                    </div>
+                  `}
+
+                  <div class="flex gap-3">
+                    <button
+                      onClick=${() =>
+                        setImageAttachment(prev => ({ ...prev, show: false }))}
+                      class="flex-1 py-2 px-4 rounded-lg transition-all ${isDarkMode
+                        ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                        : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick=${() => {
+                        publishMessageToNostr(
+                          imageAttachment.messageContent,
+                          imageAttachment.messageType,
+                          imageAttachment.messageIndex,
+                          imageAttachment.imageUrl
+                        )
+                        setImageAttachment(prev => ({ ...prev, show: false }))
+                      }}
+                      class="flex-1 bg-dm-purple hover:bg-purple-600 text-white py-2 px-4 rounded-lg transition-all"
+                    >
+                      Publish with Image
+                    </button>
+                    <button
+                      onClick=${() => {
+                        publishMessageToNostr(
+                          imageAttachment.messageContent,
+                          imageAttachment.messageType,
+                          imageAttachment.messageIndex,
+                          ''
+                        )
+                        setImageAttachment(prev => ({ ...prev, show: false }))
+                      }}
+                      class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-all"
+                    >
+                      Publish Without Image
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `
+
         const profilesModal =
           showProfiles &&
           html`
@@ -1633,7 +1793,35 @@ Requirements:
             </div>
           `
 
-        return html`${confirmModal}${keysModal}${profilesModal}
+        // Helper function to render message content with images
+        function renderMessageContent(content) {
+          const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp))/gi
+          const parts = content.split(urlRegex)
+
+          return parts.map((part, index) => {
+            if (urlRegex.test(part)) {
+              return html`<img
+                  key=${index}
+                  src=${part}
+                  alt="Attached image"
+                  class="max-w-full h-auto rounded-lg mt-2 border ${isDarkMode
+                    ? 'border-gray-600'
+                    : 'border-gray-300'}"
+                  style="max-height: 300px; object-fit: contain;"
+                  onError=${e => {
+                    e.target.style.display = 'none'
+                    e.target.nextSibling.style.display = 'inline'
+                  }}
+                /><span class="hidden text-sm text-red-500"
+                  >❌ Failed to load image</span
+                >`
+            } else {
+              return html`<span key=${index}>${part}</span>`
+            }
+          })
+        }
+
+        return html`${confirmModal}${keysModal}${imageAttachmentModal}${profilesModal}
           <header
             class="border-b px-6 py-4 shadow-lg ${isDarkMode
               ? 'bg-gray-800 border-gray-700'
@@ -1786,14 +1974,16 @@ Requirements:
                       ${userPubkey &&
                       html`<span class="text-xs opacity-50"> 🔗 </span>`}
                     </div>
-                    <div class="whitespace-pre-wrap">${m.content}</div>
+                    <div class="whitespace-pre-wrap">
+                      ${renderMessageContent(m.content)}
+                    </div>
                     <div class="flex justify-end mt-2">
                       ${canPublish &&
                       !isPublished &&
                       !isPublishing &&
                       html`<button
                         onClick=${() =>
-                          publishMessageToNostr(
+                          showImageAttachmentModal(
                             m.content,
                             m.role,
                             messageIndex
@@ -1804,7 +1994,7 @@ Requirements:
                             ? 'bg-gray-600 hover:bg-gray-500 text-gray-300 hover:text-white'
                             : 'bg-purple-100 hover:bg-purple-200 text-purple-700 hover:text-purple-800'
                           : 'bg-green-500 hover:bg-green-400 text-white'}"
-                        title="Publish to Nostr"
+                        title="Publish to Nostr (with optional image)"
                       >
                         📡 Publish
                       </button>`}
