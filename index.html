@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Browser RPG Dungeonmastr</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
       tailwind.config = {
         theme: {
@@ -237,6 +238,33 @@
       }
 
       // ----- helpers --------------------------------------------------------
+      function showToast(message, type = 'info', isDarkMode = false) {
+        const iconColor =
+          type === 'success'
+            ? '#10B981'
+            : type === 'error'
+            ? '#EF4444'
+            : type === 'warning'
+            ? '#F59E0B'
+            : '#6366F1'
+
+        Swal.fire({
+          text: message,
+          icon: type,
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 1000,
+          timerProgressBar: true,
+          background: isDarkMode ? '#374151' : '#ffffff',
+          color: isDarkMode ? '#f9fafb' : '#111827',
+          customClass: {
+            popup: 'swal2-toast-custom'
+          },
+          iconColor: iconColor
+        })
+      }
+
       function generateNostrKeypair() {
         const privkey = secp256k1.utils.randomPrivateKey()
         const fullPubkey = secp256k1.getPublicKey(privkey, false) // false = uncompressed
@@ -859,14 +887,24 @@ Requirements:
 
             if (result.successful > 0) {
               savePublishedStatus('character', true)
-              alert(
-                `✅ Character profile published to ${result.successful}/${result.total} relays!`
+              showToast(
+                `✅ Character profile published to ${result.successful}/${result.total} relays!`,
+                'success',
+                isDarkMode
               )
             } else {
-              alert(`❌ Failed to publish character profile to any relays`)
+              showToast(
+                `❌ Failed to publish character profile to any relays`,
+                'error',
+                isDarkMode
+              )
             }
           } catch (error) {
-            alert(`❌ Error publishing character profile: ${error.message}`)
+            showToast(
+              `❌ Error publishing character profile: ${error.message}`,
+              'error',
+              isDarkMode
+            )
           } finally {
             setPublishing(prev => ({ ...prev, character: false }))
           }
@@ -885,14 +923,24 @@ Requirements:
 
             if (result.successful > 0) {
               savePublishedStatus('dm', true)
-              alert(
-                `✅ DM profile published to ${result.successful}/${result.total} relays!`
+              showToast(
+                `✅ DM profile published to ${result.successful}/${result.total} relays!`,
+                'success',
+                isDarkMode
               )
             } else {
-              alert(`❌ Failed to publish DM profile to any relays`)
+              showToast(
+                `❌ Failed to publish DM profile to any relays`,
+                'error',
+                isDarkMode
+              )
             }
           } catch (error) {
-            alert(`❌ Error publishing DM profile: ${error.message}`)
+            showToast(
+              `❌ Error publishing DM profile: ${error.message}`,
+              'error',
+              isDarkMode
+            )
           } finally {
             setPublishing(prev => ({ ...prev, dm: false }))
           }
@@ -914,13 +962,19 @@ Requirements:
                 : getPublishedStatus('character')
 
             if (!keys.privkey) {
-              alert('❌ No private key available for this character')
+              showToast(
+                '❌ No private key available for this character',
+                'error',
+                isDarkMode
+              )
               return
             }
 
             if (!publishedStatus) {
-              alert(
-                '⚠️ Please publish the profile first before publishing messages'
+              showToast(
+                '⚠️ Please publish the profile first before publishing messages',
+                'warning',
+                isDarkMode
               )
               return
             }
@@ -1012,8 +1066,10 @@ Requirements:
               // Save event data for threading
               savePublishedEvent(messageIndex, signedEvent.id, keys.pubkey)
 
-              alert(
-                `✅ Message published to ${successful}/${relays.length} relays!`
+              showToast(
+                `✅ Message published to ${successful}/${relays.length} relays!`,
+                'success',
+                isDarkMode
               )
               // Mark this message as published
               const newPublishedMessages = [...publishedMessages, messageIndex]
@@ -1023,11 +1079,19 @@ Requirements:
                 JSON.stringify(newPublishedMessages)
               )
             } else {
-              alert(`❌ Failed to publish message to any relays`)
+              showToast(
+                `❌ Failed to publish message to any relays`,
+                'error',
+                isDarkMode
+              )
             }
           } catch (error) {
             console.error('Publishing message error:', error)
-            alert(`❌ Error publishing message: ${error.message}`)
+            showToast(
+              `❌ Error publishing message: ${error.message}`,
+              'error',
+              isDarkMode
+            )
           } finally {
             setPublishingMessages(prev => ({ ...prev, [messageIndex]: false }))
           }
@@ -1044,8 +1108,10 @@ Requirements:
 
           // Check if adventure is complete
           if (adventureStage >= 3) {
-            alert(
-              '🎉 This adventure is complete! Please start a new character for another adventure.'
+            showToast(
+              '🎉 This adventure is complete! Please start a new character for another adventure.',
+              'info',
+              isDarkMode
             )
             return
           }
@@ -1107,7 +1173,7 @@ Requirements:
             }
             setMessages(m => [...m, assistantMsg])
           } catch (err) {
-            alert('OpenAI error: ' + err.message)
+            showToast('OpenAI error: ' + err.message, 'error', isDarkMode)
           } finally {
             setLoading(false)
           }
@@ -1518,8 +1584,10 @@ Requirements:
                         if (promises.length > 0) {
                           await Promise.all(promises)
                         } else {
-                          alert(
-                            '❌ No profiles or private keys available to publish'
+                          showToast(
+                            '❌ No profiles or private keys available to publish',
+                            'error',
+                            isDarkMode
                           )
                         }
                       }}
@@ -1551,7 +1619,11 @@ Requirements:
                         navigator.clipboard?.writeText(
                           JSON.stringify(profiles, null, 2)
                         )
-                        alert('Profiles copied to clipboard!')
+                        showToast(
+                          'Profiles copied to clipboard!',
+                          'success',
+                          isDarkMode
+                        )
                       }}
                       class="bg-gray-600 hover:bg-gray-500 text-white py-2 px-4 rounded-lg transition-all"
                     >
