@@ -1,0 +1,2278 @@
+import {
+  html,
+  render,
+  useState,
+  useEffect,
+  useRef
+} from 'https://unpkg.com/htm@3.1.1/preact/standalone.module.js'
+
+// ----- static data ----------------------------------------------------
+const GENRES = {
+  Fantasy: [
+    'Warrior',
+    'Wizard',
+    'Rogue',
+    'Cleric',
+    'Ranger',
+    'Paladin',
+    'Barbarian',
+    'Sorcerer',
+    'Druid',
+    'Bard'
+  ],
+  SciFi: [
+    'Pilot',
+    'Engineer',
+    'Soldier',
+    'Scientist',
+    'Medic',
+    'Hacker',
+    'Captain',
+    'Android',
+    'Bounty Hunter',
+    'Psychic'
+  ],
+  Horror: [
+    'Investigator',
+    'Survivor',
+    'Occultist',
+    'Detective',
+    'Doctor',
+    'Journalist',
+    'Student',
+    'Police Officer'
+  ],
+  Modern: [
+    'Detective',
+    'Soldier',
+    'Hacker',
+    'Doctor',
+    'Lawyer',
+    'Journalist',
+    'Criminal',
+    'Agent'
+  ],
+  Superhero: [
+    'Hero',
+    'Vigilante',
+    'Mutant',
+    'Gadgeteer',
+    'Psychic',
+    'Speedster',
+    'Tank',
+    'Healer'
+  ],
+  Western: [
+    'Gunslinger',
+    'Sheriff',
+    'Outlaw',
+    'Bounty Hunter',
+    'Gambler',
+    'Preacher',
+    'Native Warrior',
+    'Rancher'
+  ],
+  Aesop: [
+    'Lion',
+    'Fox',
+    'Rabbit',
+    'Tortoise',
+    'Hare',
+    'Wolf',
+    'Crow',
+    'Eagle',
+    'Ant',
+    'Grasshopper',
+    'Bear',
+    'Mouse',
+    'Owl',
+    'Frog',
+    'Sheep',
+    'Dog'
+  ]
+}
+
+const RANDOM_NAMES = [
+  'Aiden',
+  'Lyra',
+  'Zara',
+  'Kael',
+  'Nova',
+  'Raven',
+  'Orion',
+  'Luna',
+  'Phoenix',
+  'Sage',
+  'Atlas',
+  'Iris',
+  'Dante',
+  'Aurora',
+  'Jasper',
+  'Celeste',
+  'Kai',
+  'Aria',
+  'Blaze',
+  'Seraphina',
+  'Storm',
+  'Ember',
+  'Vale',
+  'Astrid',
+  'Rex',
+  'Cora',
+  'Jett',
+  'Mira',
+  'Drake',
+  'Vera',
+  'Knox',
+  'Nyx'
+]
+
+const ROLE_STARTERS = {
+  Fantasy: {
+    Warrior: "You're sharpening your blade at the village inn when",
+    Wizard: "You're studying ancient spells in your tower when",
+    Rogue: "You're sneaking through the shadows of the city when",
+    Cleric: "You're praying at the temple altar when",
+    Ranger: "You're tracking through the deep forest when",
+    Paladin: "You're defending the innocent at the town square when",
+    Barbarian: "You're celebrating victory in the tavern when",
+    Sorcerer: "You're practicing magic in your chambers when",
+    Druid: "You're communing with nature in the sacred grove when",
+    Bard: "You're performing for a crowd at the inn when"
+  },
+  SciFi: {
+    Pilot: "You're navigating through an asteroid field when",
+    Engineer: "You're repairing the ship's systems when",
+    Soldier: "You're on patrol aboard the space station when",
+    Scientist: "You're analyzing alien samples in the lab when",
+    Medic: "You're treating wounded crew members when",
+    Hacker: "You're infiltrating enemy networks when",
+    Captain: "You're commanding the bridge during warp when",
+    Android: "You're running diagnostics on your systems when",
+    'Bounty Hunter':
+      "You're tracking your target through the spaceport when",
+    Psychic: "You're sensing disturbances in the void when"
+  },
+  Horror: {
+    Investigator: "You're examining strange evidence when",
+    Survivor: "You're hiding in the abandoned building when",
+    Occultist: "You're studying forbidden texts when",
+    Detective: "You're investigating the crime scene when",
+    Doctor: "You're treating mysterious injuries when",
+    Journalist: "You're researching the disturbing story when",
+    Student: "You're studying late in the library when",
+    'Police Officer': "You're responding to a disturbing call when"
+  },
+  Modern: {
+    Detective: "You're investigating a complex case when",
+    Soldier: "You're on a covert mission when",
+    Hacker: "You're breaking into secure systems when",
+    Doctor: "You're working the emergency room when",
+    Lawyer: "You're preparing for a crucial trial when",
+    Journalist: "You're chasing a breaking story when",
+    Criminal: "You're planning your next heist when",
+    Agent: "You're conducting surveillance when"
+  },
+  Superhero: {
+    Hero: "You're patrolling the city rooftops when",
+    Vigilante: "You're hunting criminals in the night when",
+    Mutant: "You're discovering your new powers when",
+    Gadgeteer: "You're testing your latest invention when",
+    Psychic: "You're sensing danger across the city when",
+    Speedster: "You're racing to stop a crime when",
+    Tank: "You're standing guard over civilians when",
+    Healer: "You're tending to injured heroes when"
+  },
+  Western: {
+    Gunslinger: "You're standing at high noon when",
+    Sheriff: "You're keeping the peace in town when",
+    Outlaw: "You're planning your next robbery when",
+    'Bounty Hunter': "You're tracking a dangerous fugitive when",
+    Gambler: "You're playing cards in the saloon when",
+    Preacher: "You're delivering Sunday sermon when",
+    'Native Warrior': "You're protecting your tribal lands when",
+    Rancher: "You're herding cattle on the range when"
+  },
+  Aesop: {
+    Lion: "You're resting in your den when",
+    Fox: "You're prowling through the forest when",
+    Rabbit: "You're hopping through the meadow when",
+    Tortoise: "You're slowly crossing the path when",
+    Hare: "You're racing through the countryside when",
+    Wolf: "You're hunting in the woods when",
+    Crow: "You're perched on a branch when",
+    Eagle: "You're soaring high above when",
+    Ant: "You're working industriously when",
+    Grasshopper: "You're singing in the sunshine when",
+    Bear: "You're wandering through the forest when",
+    Mouse: "You're scurrying along when",
+    Owl: "You're watching from your tree when",
+    Frog: "You're sitting by the pond when",
+    Sheep: "You're grazing peacefully when",
+    Dog: "You're loyally guarding when"
+  }
+}
+
+function getRoleStarter (genre, role) {
+  return (
+    ROLE_STARTERS[genre]?.[role] ||
+    'You find yourself in an unexpected situation when'
+  )
+}
+
+function getRandomElement (array) {
+  return array[Math.floor(Math.random() * array.length)]
+}
+
+function generateRandomCharacter () {
+  const genres = Object.keys(GENRES)
+  const randomGenre = getRandomElement(genres)
+  const randomRole = getRandomElement(GENRES[randomGenre])
+  const randomName = getRandomElement(RANDOM_NAMES)
+
+  return {
+    genre: randomGenre,
+    role: randomRole,
+    name: randomName
+  }
+}
+
+function buildSystemPrompt ({ genre, role, name, starter }) {
+  return `You are an ELITE DungeonMastr crafting a focused ${genre} adventure for ${name} the ${role}. Create STRUCTURED STORIES with clear objectives and dramatic conclusions - like "Choose Your Own Adventure" books.\n\n📖 STORY STRUCTURE (Essential):\n• OPENING HOOK - Immediate compelling situation demanding action\n• CLEAR OBJECTIVE - Player knows what they're trying to achieve\n• RISING ACTION - 3-5 escalating challenges building toward climax\n• BRANCHING PATHS - Player choices create different story branches\n• CLIMACTIC MOMENT - Major confrontation or crucial decision\n• CONCLUSION - Definitive ending (success, failure, or consequence)\n\n🎯 ADVENTURE OBJECTIVES (Pick One):\n• RESCUE MISSION - Save someone/something before time runs out\n• MYSTERY SOLVING - Uncover truth, find clues, expose villain\n• TREASURE HUNT - Race against rivals to claim powerful artifact\n• SURVIVAL CHALLENGE - Escape dangerous situation alive\n• MORAL DILEMMA - Make difficult choice affecting many lives\n• BOSS BATTLE - Defeat specific powerful enemy\n\n⚔️ CONSEQUENCE SYSTEM:\n• SMART CHOICES → Story advancement, new opportunities\n• POOR DECISIONS → Complications, harder challenges ahead\n• CRITICAL FAILURES → Character death, mission failure, story ends\n• ALTERNATIVE PATHS → Different choices lead to different adventure branches\n\n🌟 DYNAMIC STORYTELLING:\n• Every response advances toward the conclusion\n• Create 2-3 clear action paths for players to consider\n• Build tension through time pressure and escalating stakes\n• NPCs have their own agendas that complicate situations\n• Environmental challenges require creative problem-solving\n• Each scene should feel like a page from an adventure book\n• NEVER ask "What do you do?" - Present situations demanding immediate action\n\n🏁 ENDING CONDITIONS:\n• SUCCESS - Objective achieved, hero wins, story concludes triumphantly\n• FAILURE - Objective failed, consequences realized, learn from defeat\n• DEATH - Poor choices lead to dramatic demise, offer restart\n• BRANCHING - Major choice splits story into new adventure path\n• CLIFFHANGER - Current chapter ends, new objective emerges\n\nKeep responses under 120 words. Focus on ADVANCING THE PLOT toward a satisfying conclusion.\n\n${starter} - BEGIN THE STRUCTURED ADVENTURE!`
+}
+
+// ----- helpers --------------------------------------------------------
+function showToast (message, type = 'info', isDarkMode = false) {
+  const iconColor =
+    type === 'success'
+      ? '#10B981'
+      : type === 'error'
+        ? '#EF4444'
+        : type === 'warning'
+          ? '#F59E0B'
+          : '#6366F1'
+
+  Swal.fire({
+    text: message,
+    icon: type,
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+    background: isDarkMode ? '#374151' : '#ffffff',
+    color: isDarkMode ? '#f9fafb' : '#111827',
+    customClass: {
+      popup: 'swal2-toast-custom'
+    },
+    iconColor: iconColor
+  })
+}
+
+function generateNostrKeypair () {
+  const privkey = secp256k1.utils.randomPrivateKey()
+  const fullPubkey = secp256k1.getPublicKey(privkey, false) // false = uncompressed
+
+  // Convert to hex manually
+  const bytesToHex = bytes =>
+    Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')
+
+  // For nostr, we only want the x-coordinate of the public key (first 32 bytes after the prefix)
+  // Uncompressed pubkey format: 0x04 + 32 bytes x + 32 bytes y
+  // We skip the first byte (0x04) and take only the x-coordinate (next 32 bytes)
+  const pubkeyXCoord = fullPubkey.slice(1, 33) // Skip prefix byte, take x-coordinate
+
+  return {
+    privkey: bytesToHex(privkey),
+    pubkey: bytesToHex(pubkeyXCoord)
+  }
+}
+
+function saveNostrKeys (privkey, pubkey) {
+  localStorage.setItem('nostr:privkey', privkey)
+  localStorage.setItem('nostr:pubkey', pubkey)
+}
+
+function saveDMKeys (privkey, pubkey) {
+  localStorage.setItem('dm:privkey', privkey)
+  localStorage.setItem('dm:pubkey', pubkey)
+}
+
+function loadNostrKeys () {
+  return {
+    privkey: localStorage.getItem('nostr:privkey'),
+    pubkey: localStorage.getItem('nostr:pubkey')
+  }
+}
+
+function loadDMKeys () {
+  return {
+    privkey: localStorage.getItem('dm:privkey'),
+    pubkey: localStorage.getItem('dm:pubkey')
+  }
+}
+
+function savePublishedStatus (type, status) {
+  localStorage.setItem(`published:${type}`, status ? 'true' : 'false')
+}
+
+function getPublishedStatus (type) {
+  return localStorage.getItem(`published:${type}`) === 'true'
+}
+
+function savePublishedEvent (messageIndex, eventId, authorPubkey) {
+  const publishedEvents = JSON.parse(
+    localStorage.getItem('published_events') || '{ }'
+  )
+  publishedEvents[messageIndex] = {
+    eventId: eventId,
+    authorPubkey: authorPubkey,
+    timestamp: Date.now()
+  }
+  localStorage.setItem(
+    'published_events',
+    JSON.stringify(publishedEvents)
+  )
+}
+
+function getPublishedEvent (messageIndex) {
+  const publishedEvents = JSON.parse(
+    localStorage.getItem('published_events') || '{ }'
+  )
+  return publishedEvents[messageIndex] || null
+}
+
+function getThreadParticipants (messages, currentIndex) {
+  const participants = new Set()
+  const nostrKeys = loadNostrKeys()
+  const dmKeys = loadDMKeys()
+
+  // Add character and DM pubkeys
+  if (nostrKeys.pubkey) participants.add(nostrKeys.pubkey)
+  if (dmKeys.pubkey) participants.add(dmKeys.pubkey)
+
+  // Look through previous messages for any other participants
+  for (let i = 0; i < currentIndex; i++) {
+    const eventData = getPublishedEvent(i)
+    if (eventData && eventData.authorPubkey) {
+      participants.add(eventData.authorPubkey)
+    }
+  }
+
+  return Array.from(participants)
+}
+
+function buildReplyTags (messages, currentIndex, authorPubkey) {
+  const tags = []
+  const rootEvent = getPublishedEvent(0) // First published message is root
+
+  // Find the immediate parent (previous published message)
+  let parentEvent = null
+  for (let i = currentIndex - 1; i >= 0; i--) {
+    const eventData = getPublishedEvent(i)
+    if (eventData) {
+      parentEvent = eventData
+      break
+    }
+  }
+
+  // Add e tags according to NIP-10
+  if (rootEvent && parentEvent) {
+    if (rootEvent.eventId === parentEvent.eventId) {
+      // Direct reply to root
+      tags.push([
+        'e',
+        rootEvent.eventId,
+        '',
+        'root',
+        rootEvent.authorPubkey
+      ])
+    } else {
+      // Reply in a thread
+      tags.push([
+        'e',
+        rootEvent.eventId,
+        '',
+        'root',
+        rootEvent.authorPubkey
+      ])
+      tags.push([
+        'e',
+        parentEvent.eventId,
+        '',
+        'reply',
+        parentEvent.authorPubkey
+      ])
+    }
+  } else if (rootEvent) {
+    // First reply to root
+    tags.push([
+      'e',
+      rootEvent.eventId,
+      '',
+      'root',
+      rootEvent.authorPubkey
+    ])
+  }
+
+  // Add p tags for all thread participants (except current author)
+  const participants = getThreadParticipants(messages, currentIndex)
+  participants.forEach(pubkey => {
+    if (pubkey !== authorPubkey) {
+      tags.push(['p', pubkey])
+    }
+  })
+
+  return tags
+}
+
+function generateNostrProfile (keys, profileData) {
+  const now = Math.floor(Date.now() / 1000)
+  const content = JSON.stringify(profileData)
+
+  // Create the event without signature first
+  const event = {
+    pubkey: keys.pubkey,
+    created_at: now,
+    kind: 0,
+    tags: [],
+    content: content
+  }
+
+  // Generate event ID (hash of serialized event data)
+  const eventData = [
+    0,
+    event.pubkey,
+    event.created_at,
+    event.kind,
+    event.tags,
+    event.content
+  ]
+  const eventString = JSON.stringify(eventData)
+  const eventId = Array.from(
+    crypto.getRandomValues(new Uint8Array(32)),
+    b => b.toString(16).padStart(2, '0')
+  ).join('')
+
+  // Mock signature (in real implementation, this would be signed with private key)
+  const mockSig = Array.from(
+    crypto.getRandomValues(new Uint8Array(64)),
+    b => b.toString(16).padStart(2, '0')
+  ).join('')
+
+  return {
+    ...event,
+    id: eventId,
+    sig: mockSig,
+    updated_at: new Date().toISOString()
+  }
+}
+
+function generateCharacterProfile (config, keys) {
+  const profileData = {
+    name: `${config.name} the ${config.role}`,
+    about: `A ${config.role} adventuring in the ${config.genre} realm. Ready for epic quests and legendary tales!`,
+    picture: `https://api.dicebear.com/7.x/adventurer/svg?seed=${config.name}`,
+    website: `https://melvincarvalho.github.io/dungeon/`,
+    display_name: config.name,
+    nip05: `${config.name.toLowerCase()}@nostr`,
+    lud16: `${config.name.toLowerCase()}@getalby.com`,
+    banner: `https://api.dicebear.com/7.x/shapes/svg?seed=${config.genre}&backgroundColor=9d79d6`,
+    character_class: config.role,
+    genre: config.genre,
+    rpg_character: true
+  }
+
+  return generateNostrProfile(keys, profileData)
+}
+
+function generateDMProfile (keys) {
+  const profileData = {
+    name: 'The DungeonMastr',
+    about:
+      'Weaver of tales, keeper of secrets, and guide through infinite realms of adventure. I shape worlds and challenge heroes across all genres and realities.',
+    picture: `https://api.dicebear.com/7.x/bottts/svg?seed=dungeonmastr&backgroundColor=9d79d6`,
+    website: 'https://melvincarvalho.github.io/dungeon/',
+    display_name: 'DungeonMastr',
+    nip05: 'dm@nostr',
+    lud16: 'dungeonmastr@getalby.com',
+    banner:
+      'https://api.dicebear.com/7.x/shapes/svg?seed=mystical&backgroundColor=1e1e1e',
+    bot: true,
+    dungeon_master: true,
+    rpg_role: 'gamemaster'
+  }
+
+  return generateNostrProfile(keys, profileData)
+}
+
+async function callOpenAI ({ key, messages }) {
+  const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${key}`
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages,
+      temperature: 0.7,
+      top_p: 0.95,
+      max_tokens: 180,
+      stop: ['\n\n']
+    })
+  })
+  if (!resp.ok) throw new Error(await resp.text())
+  const json = await resp.json()
+  return json.choices?.[0]?.message?.content?.trim() || ''
+}
+
+// ----- components -----------------------------------------------------
+function Config ({ onStart, isDarkMode, onToggleTheme }) {
+  const [randomChar] = useState(() => generateRandomCharacter())
+  const [genre, setGenre] = useState(randomChar.genre)
+  const [role, setRole] = useState(randomChar.role)
+  const [name, setName] = useState(randomChar.name)
+
+  useEffect(() => {
+    setRole(GENRES[genre][0])
+  }, [genre])
+
+  function randomizeCharacter () {
+    const newChar = generateRandomCharacter()
+    setGenre(newChar.genre)
+    setRole(newChar.role)
+    setName(newChar.name)
+  }
+
+  return html`
+  <div
+    class="min-h-full flex items-center justify-center p-4 ${isDarkMode
+      ? 'bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900'
+      : 'bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50'}"
+  >
+    <div
+      class="p-8 rounded-2xl shadow-2xl border max-w-md w-full relative ${isDarkMode
+      ? 'bg-gray-800 border-gray-700'
+      : 'bg-white border-gray-200'}"
+    >
+      <button
+        onClick=${onToggleTheme}
+        class="absolute top-4 right-4 p-2 rounded-lg transition-all ${isDarkMode
+      ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400'
+      : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}"
+        title="Toggle theme"
+      >
+        ${isDarkMode ? '☀️' : '🌙'}
+      </button>
+      <h1
+        class="text-3xl font-bold text-center mb-8 text-transparent bg-clip-text bg-gradient-to-r from-dm-purple to-player-green"
+      >
+        Start Your Adventure
+      </h1>
+
+      <div class="space-y-6">
+        <div>
+          <label
+            class="block text-sm font-medium mb-2 ${isDarkMode
+      ? 'text-gray-300'
+      : 'text-gray-700'}"
+          >Genre</label
+          >
+          ${html`<select
+                    value=${genre}
+                    onInput=${e => setGenre(e.target.value)}
+                    class="w-full rounded-lg px-4 py-3 focus:ring-2 focus:ring-dm-purple focus:border-transparent transition-all ${isDarkMode
+        ? 'bg-gray-700 border border-gray-600 text-white'
+        : 'bg-white border border-gray-300 text-gray-900'}"
+                  >
+                    ${Object.keys(GENRES).map(
+          g => html`<option value=${g}>${g}</option>`
+        )}
+                  </select>`}
+        </div>
+
+        <div>
+          <label
+            class="block text-sm font-medium mb-2 ${isDarkMode
+      ? 'text-gray-300'
+      : 'text-gray-700'}"
+          >Role</label
+          >
+          ${html`<select
+                    value=${role}
+                    onInput=${e => setRole(e.target.value)}
+                    class="w-full rounded-lg px-4 py-3 focus:ring-2 focus:ring-dm-purple focus:border-transparent transition-all ${isDarkMode
+        ? 'bg-gray-700 border border-gray-600 text-white'
+        : 'bg-white border border-gray-300 text-gray-900'}"
+                  >
+                    ${GENRES[genre].map(
+          r => html`<option value=${r}>${r}</option>`
+        )}
+                  </select>`}
+        </div>
+
+        <div>
+          <label
+            class="block text-sm font-medium mb-2 ${isDarkMode
+      ? 'text-gray-300'
+      : 'text-gray-700'}"
+          >Character Name</label
+          >
+          <input
+            type="text"
+            value=${name}
+            onInput=${e => setName(e.target.value)}
+            class="w-full rounded-lg px-4 py-3 focus:ring-2 focus:ring-dm-purple focus:border-transparent transition-all ${isDarkMode
+      ? 'bg-gray-700 border border-gray-600 text-white placeholder-gray-400'
+      : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-500'}"
+            placeholder="Enter your character's name"
+          />
+        </div>
+
+        <div class="flex gap-3">
+          <button
+            onClick=${randomizeCharacter}
+            class="font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg ${isDarkMode
+      ? 'bg-gray-600 hover:bg-gray-500 text-white'
+      : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}"
+          >
+            🎲 Randomize
+          </button>
+          <button
+            onClick=${() => onStart({ genre, role, name })}
+            class="flex-1 bg-gradient-to-r from-dm-purple to-purple-600 hover:from-purple-600 hover:to-dm-purple text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
+          >
+            Begin Adventure
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  `
+}
+
+function Chat ({
+  apiKey,
+  config,
+  onNewCharacter,
+  isDarkMode,
+  onToggleTheme
+}) {
+  const scrollRef = useRef(null)
+  const [messages, setMessages] = useState(() => {
+    const sys = {
+      role: 'system',
+      content: buildSystemPrompt({
+        ...config,
+        starter: getRoleStarter(config.genre, config.role)
+      })
+    }
+
+    // Fallback DM introduction
+    const fallbackDmIntro = {
+      role: 'assistant',
+      content: `*A mysterious figure steps from the shadows, their eyes gleaming with ancient wisdom*
+
+  Greetings, ${config.name} the ${config.role}. I am your DungeonMastr for this ${config.genre
+        } adventure. I shall weave the tale of your journey, inhabit the characters you meet, and challenge you with the perils that await.
+
+  ${getRoleStarter(
+          config.genre,
+          config.role
+        )} a sudden commotion draws your attention...
+
+  *The DM gestures, and your adventure begins*`
+    }
+
+    return [sys, fallbackDmIntro]
+  })
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [showKeys, setShowKeys] = useState(false)
+  const [showProfiles, setShowProfiles] = useState(false)
+  const [adventureStage, setAdventureStage] = useState(0) // 0=intro, 1=climax, 2=resolution, 3=complete
+  const [turnCount, setTurnCount] = useState(0)
+  const [publishing, setPublishing] = useState({
+    character: false,
+    dm: false
+  })
+  const [publishingMessages, setPublishingMessages] = useState({})
+  const [publishedMessages, setPublishedMessages] = useState(() => {
+    return JSON.parse(localStorage.getItem('published_messages') || '[]')
+  })
+  const [imageAttachment, setImageAttachment] = useState({
+    show: false,
+    messageIndex: null,
+    messageContent: '',
+    messageType: '',
+    imageUrl: ''
+  })
+
+  const nostrKeys = loadNostrKeys()
+  const dmKeys = loadDMKeys()
+
+  // Generate dynamic introduction with GPT on component mount
+  useEffect(() => {
+    async function generateDynamicIntro () {
+      try {
+        const introPrompt = `Create a focused adventure opening for ${config.name
+          } the ${config.role} in a ${config.genre
+          } setting. ${getRoleStarter(
+            config.genre,
+            config.role
+          )} a crisis erupts that establishes a CLEAR OBJECTIVE.
+
+Choose ONE adventure type:
+- RESCUE: Someone important is in mortal danger
+- MYSTERY: A crime/disappearance needs solving 
+- TREASURE: A valuable artifact must be claimed before rivals
+- SURVIVAL: Escape from immediate deadly peril
+- MORAL CHOICE: A decision affecting many lives
+- BOSS FIGHT: A specific enemy must be defeated
+
+Requirements:
+- Establish the objective within first 30 words
+- Create immediate time pressure/urgency
+- Present 2-3 obvious action paths
+- Rich atmospheric details
+- End demanding immediate decision
+- Maximum 120 words
+- Build toward dramatic conclusion`
+
+        const introMessages = [
+          {
+            role: 'system',
+            content:
+              'You are an elite RPG narrator creating focused 3-turn adventures. Follow instructions exactly.'
+          },
+          { role: 'user', content: getStagePrompt(0) }
+        ]
+
+        const dynamicIntro = await callOpenAI({
+          key: apiKey,
+          messages: introMessages
+        })
+
+        if (dynamicIntro && dynamicIntro.trim()) {
+          setMessages(prevMessages => {
+            const newMessages = [...prevMessages]
+            // Replace the fallback intro (index 1) with the dynamic one
+            newMessages[1] = {
+              role: 'assistant',
+              content: dynamicIntro
+            }
+            return newMessages
+          })
+        }
+      } catch (error) {
+        console.log(
+          'Failed to generate dynamic intro, using fallback:',
+          error
+        )
+        // Fallback is already in place, so we don't need to do anything
+      }
+    }
+
+    // Only generate if we have an API key
+    if (apiKey && apiKey.trim()) {
+      generateDynamicIntro()
+    }
+  }, []) // Empty dependency array means this runs once on mount
+
+  // Structured adventure prompts
+  function getStagePrompt (stage, playerChoice = null) {
+    const baseContext = `${config.name} the ${config.role} in a ${config.genre} adventure.`
+
+    switch (stage) {
+      case 0: // Intro
+        return `You are an elite "quick RPG" narrator. Write ONE opening scene (≤90 words) for ${baseContext}
+
+  Requirements:
+  • State the CRISIS in the first sentence
+  • Add a ticking clock ("before dawn", "in one hour", etc.)
+  • Present exactly THREE numbered approaches:
+  A) [Action approach]
+  B) [Stealth/clever approach]
+  C) [Direct/bold approach]
+  • End with "Choose A, B, or C."
+  • No extra text after the choices`
+
+      case 1: // Climax
+        return `Continue the ${config.genre} story from choice ${playerChoice}.
+  Describe the consequence in ≤60 words.
+  End with one FINAL binary choice:
+  1) Press forward (risky but potentially rewarding)
+  2) Take safer route (lower risk, modest outcome)
+  Return only: description + "Choose 1 or 2."`
+
+      case 2: // Resolution
+        return `Finish the ${config.genre} tale from choice ${playerChoice} in ≤80 words.
+  Give the outcome, reward or consequence, and brief epilogue.
+  End the story completely. No further choices.`
+
+      default:
+        return `The adventure is complete. Say: "🎉 The adventure is over—start a new one?"`
+    }
+  }
+
+  // Generate profiles
+  const characterProfile = nostrKeys.pubkey
+    ? generateCharacterProfile(config, nostrKeys)
+    : null
+  const dmProfile = dmKeys.pubkey ? generateDMProfile(dmKeys) : null
+
+  async function publishProfileToRelays (profile, privateKey) {
+    try {
+      // Common relays to publish to
+      const relays = ['wss://relay.damus.io', 'wss://relay.nostr.net']
+
+      // Create the event template
+      const eventTemplate = {
+        kind: 0,
+        created_at: Math.floor(Date.now() / 1000),
+        tags: [],
+        content: profile.content,
+        pubkey: profile.pubkey
+      }
+
+      // Sign the event
+      const signedEvent = NostrTools.finishEvent(
+        eventTemplate,
+        privateKey
+      )
+
+      // Create pool and publish
+      const pool = new NostrTools.SimplePool()
+
+      console.log('Publishing to relays:', relays)
+      console.log('Signed event:', signedEvent)
+
+      const publishPromises = pool.publish(relays, signedEvent)
+
+      // Wait for publications to complete (with timeout)
+      const results = await Promise.allSettled(
+        publishPromises.map(p =>
+          Promise.race([
+            p,
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Timeout')), 10000)
+            )
+          ])
+        )
+      )
+
+      // Count successful publications
+      const successful = results.filter(
+        r => r.status === 'fulfilled'
+      ).length
+      const failed = results.filter(r => r.status === 'rejected').length
+
+      pool.close(relays)
+
+      return { successful, failed, total: relays.length }
+    } catch (error) {
+      console.error('Publishing error:', error)
+      throw error
+    }
+  }
+
+  async function publishCharacterProfile () {
+    if (!characterProfile || !nostrKeys.privkey) return
+
+    setPublishing(prev => ({ ...prev, character: true }))
+
+    try {
+      const result = await publishProfileToRelays(
+        characterProfile,
+        nostrKeys.privkey
+      )
+
+      if (result.successful > 0) {
+        savePublishedStatus('character', true)
+        showToast(
+          `✅ Character profile published to ${result.successful}/${result.total} relays!`,
+          'success',
+          isDarkMode
+        )
+      } else {
+        showToast(
+          `❌ Failed to publish character profile to any relays`,
+          'error',
+          isDarkMode
+        )
+      }
+    } catch (error) {
+      showToast(
+        `❌ Error publishing character profile: ${error.message}`,
+        'error',
+        isDarkMode
+      )
+    } finally {
+      setPublishing(prev => ({ ...prev, character: false }))
+    }
+  }
+
+  async function publishDMProfile () {
+    if (!dmProfile || !dmKeys.privkey) return
+
+    setPublishing(prev => ({ ...prev, dm: true }))
+
+    try {
+      const result = await publishProfileToRelays(
+        dmProfile,
+        dmKeys.privkey
+      )
+
+      if (result.successful > 0) {
+        savePublishedStatus('dm', true)
+        showToast(
+          `✅ DM profile published to ${result.successful}/${result.total} relays!`,
+          'success',
+          isDarkMode
+        )
+      } else {
+        showToast(
+          `❌ Failed to publish DM profile to any relays`,
+          'error',
+          isDarkMode
+        )
+      }
+    } catch (error) {
+      showToast(
+        `❌ Error publishing DM profile: ${error.message}`,
+        'error',
+        isDarkMode
+      )
+    } finally {
+      setPublishing(prev => ({ ...prev, dm: false }))
+    }
+  }
+
+  function showImageAttachmentModal (
+    messageContent,
+    messageType,
+    messageIndex
+  ) {
+    setImageAttachment({
+      show: true,
+      messageIndex,
+      messageContent,
+      messageType,
+      imageUrl: ''
+    })
+  }
+
+  async function publishMessageToNostr (
+    messageContent,
+    messageType,
+    messageIndex,
+    attachedImageUrl = ''
+  ) {
+    setPublishingMessages(prev => ({ ...prev, [messageIndex]: true }))
+
+    try {
+      // Determine which keys to use based on message type
+      const keys = messageType === 'assistant' ? dmKeys : nostrKeys
+      const publishedStatus =
+        messageType === 'assistant'
+          ? getPublishedStatus('dm')
+          : getPublishedStatus('character')
+
+      if (!keys.privkey) {
+        showToast(
+          '❌ No private key available for this character',
+          'error',
+          isDarkMode
+        )
+        return
+      }
+
+      if (!publishedStatus) {
+        showToast(
+          '⚠️ Please publish the profile first before publishing messages',
+          'warning',
+          isDarkMode
+        )
+        return
+      }
+
+      // Common relays to publish to
+      const relays = ['wss://relay.damus.io', 'wss://relay.nostr.net']
+
+      // Start with RPG-themed hashtags
+      const tags = [
+        ['t', 'rpg'],
+        ['t', 'nostr-rpg'],
+        ['t', 'dungeonmastr'],
+        ['t', config.genre.toLowerCase()],
+        ['t', config.role.toLowerCase().replace(/\s+/g, '')],
+        ['t', messageType === 'assistant' ? 'dungeonmastr' : 'player']
+      ]
+
+      // Add character name as a tag
+      if (messageType !== 'assistant') {
+        tags.push(['t', config.name.toLowerCase()])
+      }
+
+      // Add NIP-10 reply tags for threading
+      const replyTags = buildReplyTags(
+        messages,
+        messageIndex,
+        keys.pubkey
+      )
+      tags.push(...replyTags)
+
+      // Format the content with RPG context
+      const baseContent =
+        messageType === 'assistant'
+          ? `🎭 DungeonMastr:\n\n${messageContent}`
+          : `⚔️ ${config.name} the ${config.role}:\n\n${messageContent}`
+
+      const imageContent = attachedImageUrl
+        ? `\n\n${attachedImageUrl}`
+        : ''
+
+      const hashtags =
+        messageType === 'assistant'
+          ? `\n\n#RPG #NostrRPG #DungeonMastr #${config.genre} #DungeonMastr`
+          : `\n\n#RPG #NostrRPG #DungeonMastr #${config.genre
+          } #${config.role.replace(/\s+/g, '')} #Player`
+
+      const formattedContent = baseContent + imageContent + hashtags
+
+      // Create the event template
+      const eventTemplate = {
+        kind: 1,
+        created_at: Math.floor(Date.now() / 1000),
+        tags: tags,
+        content: formattedContent,
+        pubkey: keys.pubkey
+      }
+
+      // Sign the event
+      const signedEvent = NostrTools.finishEvent(
+        eventTemplate,
+        keys.privkey
+      )
+
+      // Create pool and publish
+      const pool = new NostrTools.SimplePool()
+
+      console.log('Publishing message to relays:', relays)
+      console.log('Signed event:', signedEvent)
+
+      const publishPromises = pool.publish(relays, signedEvent)
+
+      // Wait for publications to complete (with timeout)
+      const results = await Promise.allSettled(
+        publishPromises.map(p =>
+          Promise.race([
+            p,
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Timeout')), 10000)
+            )
+          ])
+        )
+      )
+
+      // Count successful publications
+      const successful = results.filter(
+        r => r.status === 'fulfilled'
+      ).length
+      const failed = results.filter(r => r.status === 'rejected').length
+
+      pool.close(relays)
+
+      if (successful > 0) {
+        // Save event data for threading
+        savePublishedEvent(messageIndex, signedEvent.id, keys.pubkey)
+
+        showToast(
+          `✅ Message published to ${successful}/${relays.length} relays!`,
+          'success',
+          isDarkMode
+        )
+        // Mark this message as published
+        const newPublishedMessages = [...publishedMessages, messageIndex]
+        setPublishedMessages(newPublishedMessages)
+        localStorage.setItem(
+          'published_messages',
+          JSON.stringify(newPublishedMessages)
+        )
+      } else {
+        showToast(
+          `❌ Failed to publish message to any relays`,
+          'error',
+          isDarkMode
+        )
+      }
+    } catch (error) {
+      console.error('Publishing message error:', error)
+      showToast(
+        `❌ Error publishing message: ${error.message}`,
+        'error',
+        isDarkMode
+      )
+    } finally {
+      setPublishingMessages(prev => ({ ...prev, [messageIndex]: false }))
+    }
+  }
+
+  useEffect(() => {
+    if (scrollRef.current)
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+  }, [messages])
+
+  // ----- send player input ------------------------------------------
+  async function send () {
+    if (!input.trim() || loading) return
+
+    // Check if adventure is complete
+    if (adventureStage >= 3) {
+      showToast(
+        '🎉 This adventure is complete! Please start a new character for another adventure.',
+        'info',
+        isDarkMode
+      )
+      return
+    }
+
+    const userMsg = { role: 'user', content: input.trim() }
+    setMessages(m => [...m, userMsg])
+    setInput('')
+    setLoading(true)
+    setTurnCount(prev => prev + 1)
+
+    try {
+      let assistantContent
+
+      // Handle structured adventure flow
+      if (adventureStage === 0) {
+        // First turn - advance to climax
+        assistantContent = await callOpenAI({
+          key: apiKey,
+          messages: [
+            {
+              role: 'system',
+              content:
+                'You are an elite RPG narrator. Follow instructions exactly.'
+            },
+            { role: 'user', content: getStagePrompt(1, input.trim()) }
+          ]
+        })
+        setAdventureStage(1)
+      } else if (adventureStage === 1) {
+        // Second turn - advance to resolution
+        assistantContent = await callOpenAI({
+          key: apiKey,
+          messages: [
+            {
+              role: 'system',
+              content:
+                'You are an elite RPG narrator. Follow instructions exactly.'
+            },
+            { role: 'user', content: getStagePrompt(2, input.trim()) }
+          ]
+        })
+        setAdventureStage(2)
+      } else if (adventureStage === 2) {
+        // Final turn - adventure complete
+        assistantContent =
+          '🎉 The adventure is complete! Your tale has reached its conclusion. Start a new character to begin another epic quest!'
+        setAdventureStage(3)
+      } else {
+        // Fallback for any edge cases
+        assistantContent = await callOpenAI({
+          key: apiKey,
+          messages: [...messages, userMsg]
+        })
+      }
+
+      const assistantMsg = {
+        role: 'assistant',
+        content: assistantContent
+      }
+      setMessages(m => [...m, assistantMsg])
+    } catch (err) {
+      showToast('OpenAI error: ' + err.message, 'error', isDarkMode)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ----- UI ---------------------------------------------------------
+  const confirmModal =
+    showConfirm &&
+    html`
+  <div
+    class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
+  >
+    <div
+      class="p-6 rounded-2xl shadow-2xl border max-w-sm w-full ${isDarkMode
+        ? 'bg-gray-800 border-gray-700'
+        : 'bg-white border-gray-200'}"
+    >
+      <h3
+        class="text-lg font-semibold mb-4 ${isDarkMode
+        ? 'text-white'
+        : 'text-gray-900'}"
+      >
+        Start New Adventure?
+      </h3>
+      <p
+        class="mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}"
+      >
+        This will create a new character and reset your current
+        adventure. This action cannot be undone.
+      </p>
+      <div class="flex gap-3">
+        <button
+          onClick=${() => setShowConfirm(false)}
+          class="flex-1 py-2 px-4 rounded-lg transition-all ${isDarkMode
+        ? 'bg-gray-700 hover:bg-gray-600 text-white'
+        : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}"
+        >
+          Cancel
+        </button>
+        <button
+          onClick=${() => {
+        setShowConfirm(false)
+        onNewCharacter()
+      }}
+          class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-all"
+        >
+          New Character
+        </button>
+      </div>
+    </div>
+  </div>
+  `
+
+  const keysModal =
+    showKeys &&
+    html`
+  <div
+    class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
+  >
+    <div
+      class="p-6 rounded-2xl shadow-2xl border max-w-2xl w-full max-h-[80vh] overflow-y-auto ${isDarkMode
+        ? 'bg-gray-800 border-gray-700'
+        : 'bg-white border-gray-200'}"
+    >
+      <div class="flex justify-between items-center mb-4">
+        <h3
+          class="text-lg font-semibold ${isDarkMode
+        ? 'text-white'
+        : 'text-gray-900'}"
+        >
+          Nostr Keys
+        </h3>
+        <button
+          onClick=${() => setShowKeys(false)}
+          class="text-xl ${isDarkMode
+        ? 'text-gray-400 hover:text-white'
+        : 'text-gray-600 hover:text-gray-900'}"
+        >
+          ×
+        </button>
+      </div>
+
+      <div class="space-y-6">
+        <div>
+          <h4 class="text-md font-semibold text-dm-purple mb-3">
+            Character Keys (${config.name})
+          </h4>
+          <div class="space-y-3">
+            <div>
+              <label
+                class="block text-sm font-medium mb-2 ${isDarkMode
+        ? 'text-gray-300'
+        : 'text-gray-700'}"
+              >Public Key</label
+              >
+              <div
+                class="p-3 rounded-lg border ${isDarkMode
+        ? 'bg-gray-700 border-gray-600'
+        : 'bg-gray-50 border-gray-300'}"
+              >
+                <code
+                  class="text-xs break-all font-mono ${isDarkMode
+        ? 'text-green-400'
+        : 'text-green-600'}"
+                >${nostrKeys.pubkey || 'Not generated'}</code
+                >
+              </div>
+            </div>
+            <div>
+              <label
+                class="block text-sm font-medium mb-2 ${isDarkMode
+        ? 'text-gray-300'
+        : 'text-gray-700'}"
+              >Private Key</label
+              >
+              <div
+                class="p-3 rounded-lg border ${isDarkMode
+        ? 'bg-gray-700 border-gray-600'
+        : 'bg-gray-50 border-gray-300'}"
+              >
+                <code
+                  class="text-xs break-all font-mono ${isDarkMode
+        ? 'text-red-400'
+        : 'text-red-600'}"
+                >${nostrKeys.privkey || 'Not generated'}</code
+                >
+              </div>
+              <p
+                class="text-xs mt-1 ${isDarkMode
+        ? 'text-gray-500'
+        : 'text-gray-400'}"
+              >
+                ⚠️ Keep your private key secret!
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h4 class="text-md font-semibold text-purple-400 mb-3">
+            DungeonMastr Keys
+          </h4>
+          <div class="space-y-3">
+            <div>
+              <label
+                class="block text-sm font-medium mb-2 ${isDarkMode
+        ? 'text-gray-300'
+        : 'text-gray-700'}"
+              >Public Key</label
+              >
+              <div
+                class="p-3 rounded-lg border ${isDarkMode
+        ? 'bg-gray-700 border-gray-600'
+        : 'bg-gray-50 border-gray-300'}"
+              >
+                <code
+                  class="text-xs break-all font-mono ${isDarkMode
+        ? 'text-green-400'
+        : 'text-green-600'}"
+                >${dmKeys.pubkey || 'Not generated'}</code
+                >
+              </div>
+            </div>
+            <div>
+              <label
+                class="block text-sm font-medium mb-2 ${isDarkMode
+        ? 'text-gray-300'
+        : 'text-gray-700'}"
+              >Private Key</label
+              >
+              <div
+                class="p-3 rounded-lg border ${isDarkMode
+        ? 'bg-gray-700 border-gray-600'
+        : 'bg-gray-50 border-gray-300'}"
+              >
+                <code
+                  class="text-xs break-all font-mono ${isDarkMode
+        ? 'text-red-400'
+        : 'text-red-600'}"
+                >${dmKeys.privkey || 'Not generated'}</code
+                >
+              </div>
+              <p
+                class="text-xs mt-1 ${isDarkMode
+        ? 'text-gray-500'
+        : 'text-gray-400'}"
+              >
+                ⚠️ Keep your private key secret!
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 flex justify-end">
+        <button
+          onClick=${() => setShowKeys(false)}
+          class="bg-dm-purple hover:bg-purple-600 text-white py-2 px-4 rounded-lg transition-all"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+  `
+
+  const imageAttachmentModal =
+    imageAttachment.show &&
+    html`
+  <div
+    class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
+  >
+    <div
+      class="p-6 rounded-2xl shadow-2xl border max-w-md w-full ${isDarkMode
+        ? 'bg-gray-800 border-gray-700'
+        : 'bg-white border-gray-200'}"
+    >
+      <div class="flex justify-between items-center mb-4">
+        <h3
+          class="text-lg font-semibold ${isDarkMode
+        ? 'text-white'
+        : 'text-gray-900'}"
+        >
+          Attach Media
+        </h3>
+        <button
+          onClick=${() =>
+        setImageAttachment(prev => ({ ...prev, show: false }))}
+          class="text-xl ${isDarkMode
+        ? 'text-gray-400 hover:text-white'
+        : 'text-gray-600 hover:text-gray-900'}"
+        >
+          ×
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label
+            class="block text-sm font-medium mb-2 ${isDarkMode
+        ? 'text-gray-300'
+        : 'text-gray-700'}"
+          >
+            Media URL (Image or Video)
+          </label>
+          <input
+            type="url"
+            placeholder="https://example.com/image.jpg or video.mp4"
+            value=${imageAttachment.imageUrl}
+            onInput=${e =>
+        setImageAttachment(prev => ({
+          ...prev,
+          imageUrl: e.target.value
+        }))}
+            class="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-dm-purple focus:border-transparent transition-all ${isDarkMode
+        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'}"
+          />
+        </div>
+
+        ${imageAttachment.imageUrl &&
+      html`
+                    <div>
+                      <label
+                        class="block text-sm font-medium mb-2 ${isDarkMode
+          ? 'text-gray-300'
+          : 'text-gray-700'}"
+                      >
+                        Preview
+                      </label>
+                      ${imageAttachment.imageUrl.toLowerCase().endsWith('.mp4')
+          ? html`<video
+                              src=${imageAttachment.imageUrl}
+                              controls
+                              class="w-full h-48 rounded-lg border ${isDarkMode
+              ? 'border-gray-600'
+              : 'border-gray-300'}"
+                              onError=${e => {
+              e.target.style.display = 'none'
+              e.target.nextSibling.style.display = 'block'
+            }}
+                            >
+                              Your browser does not support the video tag.
+                            </video>
+                            <div
+                              class="hidden w-full h-48 flex items-center justify-center rounded-lg border border-dashed ${isDarkMode
+              ? 'border-gray-600 text-gray-400'
+              : 'border-gray-300 text-gray-500'}"
+                            >
+                              ❌ Invalid video URL
+                            </div>`
+          : html`<img
+                              src=${imageAttachment.imageUrl}
+                              alt="Image preview"
+                              class="w-full h-48 object-cover rounded-lg border ${isDarkMode
+              ? 'border-gray-600'
+              : 'border-gray-300'}"
+                              onError=${e => {
+              e.target.style.display = 'none'
+              e.target.nextSibling.style.display = 'block'
+            }}
+                            />
+                            <div
+                              class="hidden w-full h-48 flex items-center justify-center rounded-lg border border-dashed ${isDarkMode
+              ? 'border-gray-600 text-gray-400'
+              : 'border-gray-300 text-gray-500'}"
+                            >
+                              ❌ Invalid image URL
+                            </div>`}
+                    </div>
+                  `}
+
+        <div class="flex gap-3">
+          <button
+            onClick=${() =>
+        setImageAttachment(prev => ({ ...prev, show: false }))}
+            class="flex-1 py-2 px-4 rounded-lg transition-all ${isDarkMode
+        ? 'bg-gray-700 hover:bg-gray-600 text-white'
+        : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}"
+          >
+            Cancel
+          </button>
+          <button
+            onClick=${() => {
+        publishMessageToNostr(
+          imageAttachment.messageContent,
+          imageAttachment.messageType,
+          imageAttachment.messageIndex,
+          imageAttachment.imageUrl
+        )
+        setImageAttachment(prev => ({ ...prev, show: false }))
+      }}
+            class="flex-1 bg-dm-purple hover:bg-purple-600 text-white py-2 px-4 rounded-lg transition-all"
+          >
+            Publish with Media
+          </button>
+          <button
+            onClick=${() => {
+        publishMessageToNostr(
+          imageAttachment.messageContent,
+          imageAttachment.messageType,
+          imageAttachment.messageIndex,
+          ''
+        )
+        setImageAttachment(prev => ({ ...prev, show: false }))
+      }}
+            class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-all"
+          >
+            Publish Without Media
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  `
+
+  const profilesModal =
+    showProfiles &&
+    html`
+  <div
+    class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
+  >
+    <div
+      class="p-6 rounded-2xl shadow-2xl border max-w-4xl w-full max-h-[80vh] overflow-y-auto ${isDarkMode
+        ? 'bg-gray-800 border-gray-700'
+        : 'bg-white border-gray-200'}"
+    >
+      <div class="flex justify-between items-center mb-4">
+        <h3
+          class="text-lg font-semibold ${isDarkMode
+        ? 'text-white'
+        : 'text-gray-900'}"
+        >
+          Nostr Profiles
+        </h3>
+        <button
+          onClick=${() => setShowProfiles(false)}
+          class="text-xl ${isDarkMode
+        ? 'text-gray-400 hover:text-white'
+        : 'text-gray-600 hover:text-gray-900'}"
+        >
+          ×
+        </button>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        ${characterProfile &&
+      html`
+                    <div class="space-y-4">
+                      <h4 class="text-md font-semibold text-dm-purple">
+                        Character Profile
+                      </h4>
+                      <div
+                        class="p-4 rounded-lg border ${isDarkMode
+          ? 'bg-gray-700 border-gray-600'
+          : 'bg-gray-50 border-gray-300'}"
+                      >
+                        <div class="flex items-center gap-3 mb-3">
+                          <img
+                            src="${JSON.parse(characterProfile.content)
+          .picture}"
+                            alt="Character Avatar"
+                            class="w-12 h-12 rounded-full"
+                          />
+                          <div>
+                            <h5
+                              class="font-semibold ${isDarkMode
+          ? 'text-white'
+          : 'text-gray-900'}"
+                            >
+                              ${JSON.parse(characterProfile.content).name}
+                            </h5>
+                            <p
+                              class="text-sm ${isDarkMode
+          ? 'text-gray-400'
+          : 'text-gray-600'}"
+                            >
+                              ${JSON.parse(characterProfile.content).nip05}
+                            </p>
+                          </div>
+                        </div>
+                        <p
+                          class="text-sm mb-3 ${isDarkMode
+          ? 'text-gray-300'
+          : 'text-gray-700'}"
+                        >
+                          ${JSON.parse(characterProfile.content).about}
+                        </p>
+                        <div class="flex gap-2 mt-3 mb-3">
+                          <button
+                            onClick=${publishCharacterProfile}
+                            disabled=${publishing.character ||
+        !nostrKeys.privkey}
+                            class="flex-1 py-2 px-3 rounded-lg transition-all text-sm font-medium ${publishing.character
+          ? 'bg-gray-400 cursor-not-allowed'
+          : !nostrKeys.privkey
+            ? 'bg-gray-300 cursor-not-allowed'
+            : 'bg-dm-purple hover:bg-purple-600'} text-white"
+                          >
+                            ${publishing.character
+          ? '🔄 Publishing...'
+          : '📡 Publish to Relays'}
+                          </button>
+                        </div>
+                        <details class="mt-3">
+                          <summary
+                            class="cursor-pointer text-sm font-medium ${isDarkMode
+          ? 'text-gray-400'
+          : 'text-gray-600'} hover:text-dm-purple"
+                          >
+                            View JSON Event
+                          </summary>
+                          <pre
+                            class="mt-2 p-3 rounded text-xs overflow-x-auto ${isDarkMode
+          ? 'bg-gray-800 text-green-400'
+          : 'bg-white text-green-600'}"
+                          >
+ ${JSON.stringify(characterProfile, null, 2)}</pre
+                          >
+                        </details>
+                      </div>
+                    </div>
+                  `}
+        ${dmProfile &&
+      html`
+                    <div class="space-y-4">
+                      <h4 class="text-md font-semibold text-purple-400">
+                        DungeonMastr Profile
+                      </h4>
+                      <div
+                        class="p-4 rounded-lg border ${isDarkMode
+          ? 'bg-gray-700 border-gray-600'
+          : 'bg-gray-50 border-gray-300'}"
+                      >
+                        <div class="flex items-center gap-3 mb-3">
+                          <img
+                            src="${JSON.parse(dmProfile.content).picture}"
+                            alt="DM Avatar"
+                            class="w-12 h-12 rounded-full"
+                          />
+                          <div>
+                            <h5
+                              class="font-semibold ${isDarkMode
+          ? 'text-white'
+          : 'text-gray-900'}"
+                            >
+                              ${JSON.parse(dmProfile.content).name}
+                            </h5>
+                            <p
+                              class="text-sm ${isDarkMode
+          ? 'text-gray-400'
+          : 'text-gray-600'}"
+                            >
+                              ${JSON.parse(dmProfile.content).nip05}
+                            </p>
+                          </div>
+                        </div>
+                        <p
+                          class="text-sm mb-3 ${isDarkMode
+          ? 'text-gray-300'
+          : 'text-gray-700'}"
+                        >
+                          ${JSON.parse(dmProfile.content).about}
+                        </p>
+                        <div class="flex gap-2 mt-3 mb-3">
+                          <button
+                            onClick=${publishDMProfile}
+                            disabled=${publishing.dm || !dmKeys.privkey}
+                            class="flex-1 py-2 px-3 rounded-lg transition-all text-sm font-medium ${publishing.dm
+          ? 'bg-gray-400 cursor-not-allowed'
+          : !dmKeys.privkey
+            ? 'bg-gray-300 cursor-not-allowed'
+            : 'bg-purple-600 hover:bg-purple-700'} text-white"
+                          >
+                            ${publishing.dm
+          ? '🔄 Publishing...'
+          : '📡 Publish to Relays'}
+                          </button>
+                        </div>
+                        <details class="mt-3">
+                          <summary
+                            class="cursor-pointer text-sm font-medium ${isDarkMode
+          ? 'text-gray-400'
+          : 'text-gray-600'} hover:text-dm-purple"
+                          >
+                            View JSON Event
+                          </summary>
+                          <pre
+                            class="mt-2 p-3 rounded text-xs overflow-x-auto ${isDarkMode
+          ? 'bg-gray-800 text-green-400'
+          : 'bg-white text-green-600'}"
+                          >
+ ${JSON.stringify(dmProfile, null, 2)}</pre
+                          >
+                        </details>
+                      </div>
+                    </div>
+                  `}
+      </div>
+
+      <div class="mt-6 flex justify-between items-center">
+        <div class="flex gap-3">
+          <button
+            onClick=${async () => {
+        const anyPublishing =
+          publishing.character || publishing.dm
+        if (anyPublishing) return
+
+        // Publish both profiles in parallel
+        const promises = []
+        if (characterProfile && nostrKeys.privkey) {
+          promises.push(publishCharacterProfile())
+        }
+        if (dmProfile && dmKeys.privkey) {
+          promises.push(publishDMProfile())
+        }
+
+        if (promises.length > 0) {
+          await Promise.all(promises)
+        } else {
+          showToast(
+            '❌ No profiles or private keys available to publish',
+            'error',
+            isDarkMode
+          )
+        }
+      }}
+            disabled=${publishing.character ||
+      publishing.dm ||
+      (!characterProfile && !dmProfile) ||
+      (!nostrKeys.privkey && !dmKeys.privkey)}
+            class="py-2 px-4 rounded-lg transition-all font-medium ${publishing.character ||
+        publishing.dm
+        ? 'bg-gray-400 cursor-not-allowed'
+        : (!characterProfile && !dmProfile) ||
+          (!nostrKeys.privkey && !dmKeys.privkey)
+          ? 'bg-gray-300 cursor-not-allowed'
+          : 'bg-green-600 hover:bg-green-700'} text-white"
+          >
+            ${publishing.character || publishing.dm
+        ? '🔄 Publishing...'
+        : '🚀 Publish All Profiles'}
+          </button>
+        </div>
+
+        <div class="flex gap-3">
+          <button
+            onClick=${() => {
+        const profiles = {
+          character: characterProfile,
+          dm: dmProfile
+        }
+        navigator.clipboard?.writeText(
+          JSON.stringify(profiles, null, 2)
+        )
+        showToast(
+          'Profiles copied to clipboard!',
+          'success',
+          isDarkMode
+        )
+      }}
+            class="bg-gray-600 hover:bg-gray-500 text-white py-2 px-4 rounded-lg transition-all"
+          >
+            📋 Copy JSON
+          </button>
+          <button
+            onClick=${() => setShowProfiles(false)}
+            class="bg-dm-purple hover:bg-purple-600 text-white py-2 px-4 rounded-lg transition-all"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  `
+
+  // Helper function to render message content with images and videos
+  function renderMessageContent (content) {
+    const mediaUrlRegex =
+      /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|mp4))/gi
+    const imageUrlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp))/gi
+    const videoUrlRegex = /(https?:\/\/[^\s]+\.mp4)/gi
+    const parts = content.split(mediaUrlRegex)
+
+    return parts.map((part, index) => {
+      if (videoUrlRegex.test(part)) {
+        return html`<video
+    key=${index}
+    src=${part}
+    controls
+    class="max-w-full h-auto rounded-lg mt-2 border ${isDarkMode
+            ? 'border-gray-600'
+            : 'border-gray-300'}"
+    style="max-height: 300px;"
+    onError=${e => {
+            e.target.style.display = 'none'
+            e.target.nextSibling.style.display = 'inline'
+          }}
+  >
+    Your browser does not support the video tag.</video
+  ><span class="hidden text-sm text-red-500"
+  >❌ Failed to load video</span
+  >`
+      } else if (imageUrlRegex.test(part)) {
+        return html`<img
+    key=${index}
+    src=${part}
+    alt="Attached image"
+    class="max-w-full h-auto rounded-lg mt-2 border ${isDarkMode
+            ? 'border-gray-600'
+            : 'border-gray-300'}"
+    style="max-height: 300px; object-fit: contain;"
+    onError=${e => {
+            e.target.style.display = 'none'
+            e.target.nextSibling.style.display = 'inline'
+          }}
+  /><span class="hidden text-sm text-red-500"
+  >❌ Failed to load image</span
+  >`
+      } else {
+        return html`<span key=${index}>${part}</span>`
+      }
+    })
+  }
+
+  return html`${confirmModal}${keysModal}${imageAttachmentModal}${profilesModal}
+  <header
+    class="border-b px-6 py-4 shadow-lg ${isDarkMode
+      ? 'bg-gray-800 border-gray-700'
+      : 'bg-white border-gray-200'}"
+  >
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-4">
+        <h2
+          class="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-dm-purple to-player-green"
+        >
+          ${config.name} the ${config.role}
+        </h2>
+        <span
+          class="text-sm px-3 py-1 rounded-full ${isDarkMode
+      ? 'text-gray-400 bg-gray-700'
+      : 'text-gray-600 bg-gray-100'}"
+        >
+          ${config.genre}
+        </span>
+        ${adventureStage < 3 &&
+    html`<span
+                  class="text-xs px-2 py-1 rounded-full ${isDarkMode
+        ? 'text-purple-300 bg-purple-900'
+        : 'text-purple-700 bg-purple-100'}"
+                >
+                  ${adventureStage === 0
+        ? 'Opening'
+        : adventureStage === 1
+          ? 'Climax'
+          : 'Resolution'}
+                </span>`}
+      </div>
+      <div class="flex items-center gap-2">
+        <button
+          onClick=${onToggleTheme}
+          class="text-sm p-2 rounded-lg transition-all duration-200 ${isDarkMode
+      ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400'
+      : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}"
+          title="Toggle theme"
+        >
+          ${isDarkMode ? '☀️' : '🌙'}
+        </button>
+        <button
+          onClick=${() => setShowKeys(true)}
+          class="text-xs px-2 py-1 rounded transition-all duration-200 border ${isDarkMode
+      ? 'bg-gray-700 hover:bg-gray-600 text-gray-400 hover:text-gray-300 border-gray-600 hover:border-gray-500'
+      : 'bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800 border-gray-300 hover:border-gray-400'}"
+          title="View Nostr Keys"
+        >
+          🔑
+        </button>
+        <button
+          onClick=${() => setShowProfiles(true)}
+          class="text-xs px-2 py-1 rounded transition-all duration-200 border ${isDarkMode
+      ? 'bg-gray-700 hover:bg-gray-600 text-gray-400 hover:text-gray-300 border-gray-600 hover:border-gray-500'
+      : 'bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800 border-gray-300 hover:border-gray-400'}"
+          title="View Nostr Profiles"
+        >
+          👤
+        </button>
+        <button
+          onClick=${() => setShowConfirm(true)}
+          class="text-sm px-3 py-2 rounded-lg transition-all duration-200 border ${isDarkMode
+      ? 'bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white border-gray-600 hover:border-gray-500'
+      : 'bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 border-gray-300 hover:border-gray-400'}"
+        >
+          New Character
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main
+    ref=${scrollRef}
+    class="flex-1 overflow-y-auto p-6 space-y-4 ${isDarkMode
+      ? 'bg-gradient-to-b from-gray-900 to-gray-800'
+      : 'bg-gradient-to-b from-gray-50 to-white'}"
+  >
+    ${messages
+      .filter(m => m.role !== 'system')
+      .map((m, index) => {
+        const messageIndex = index
+        const isPublished = publishedMessages.includes(messageIndex)
+        const isPublishing = publishingMessages[messageIndex]
+        const publishedEvent = getPublishedEvent(messageIndex)
+        const canPublish =
+          m.role === 'assistant'
+            ? getPublishedStatus('dm')
+            : getPublishedStatus('character')
+
+        // Check if this message is part of a thread
+        const isPartOfThread = publishedEvent && getPublishedEvent(0)
+        const isThreadRoot = publishedEvent && messageIndex === 0
+
+        // Get user info for the speech bubble header
+        const userName =
+          m.role === 'assistant'
+            ? 'DungeonMastr'
+            : `${config.name} the ${config.role}`
+        const userPubkey =
+          m.role === 'assistant' ? dmKeys.pubkey : nostrKeys.pubkey
+        const profileUrl = userPubkey
+          ? `https://nostr.rocks/users/${userPubkey}`
+          : '#'
+
+        return html`<div
+                  class="flex ${m.role === 'assistant'
+            ? 'justify-start'
+            : 'justify-end'}"
+                >
+                  <div
+                    class="max-w-2xl px-4 py-3 rounded-2xl shadow-lg ${m.role ===
+            'assistant'
+            ? isDarkMode
+              ? 'bg-gray-700 border-l-4 border-dm-purple text-gray-100'
+              : 'bg-purple-50 border-l-4 border-dm-purple text-gray-800'
+            : 'bg-gradient-to-r from-player-green to-green-600 text-white ml-auto'}"
+                  >
+                    ${isPartOfThread &&
+          html`<div
+                      class="flex items-center gap-2 mb-2 text-xs opacity-75"
+                    >
+                      ${isThreadRoot
+              ? html`<span class="flex items-center gap-1">
+                            🧵 Thread Root
+                          </span>`
+              : html`<span class="flex items-center gap-1">
+                            ↪️ Reply in thread
+                          </span>`}
+                    </div>`}
+                    <div class="flex items-center gap-2 mb-2">
+                      <a
+                        href="${profileUrl}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="text-sm font-semibold hover:underline transition-all ${m.role ===
+            'assistant'
+            ? isDarkMode
+              ? 'text-dm-purple hover:text-purple-300'
+              : 'text-dm-purple hover:text-purple-600'
+            : isDarkMode
+              ? 'text-player-green hover:text-green-300'
+              : 'text-green-700 hover:text-green-800'}"
+                        title="${userPubkey
+            ? 'View profile on nostr.rocks'
+            : 'Profile not available'}"
+                      >
+                        ${userName}
+                      </a>
+                      ${userPubkey &&
+          html`<span class="text-xs opacity-50"> 🔗 </span>`}
+                    </div>
+                    <div class="whitespace-pre-wrap">
+                      ${renderMessageContent(m.content)}
+                    </div>
+                    <div class="flex justify-end mt-2">
+                      ${canPublish &&
+          !isPublished &&
+          !isPublishing &&
+          html`<button
+                        onClick=${() =>
+              showImageAttachmentModal(
+                m.content,
+                m.role,
+                messageIndex
+              )}
+                        class="text-xs px-2 py-1 rounded-lg transition-all duration-200 ${m.role ===
+              'assistant'
+              ? isDarkMode
+                ? 'bg-gray-600 hover:bg-gray-500 text-gray-300 hover:text-white'
+                : 'bg-purple-100 hover:bg-purple-200 text-purple-700 hover:text-purple-800'
+              : 'bg-green-500 hover:bg-green-400 text-white'}"
+                        title="Publish to Nostr (with optional image or video)"
+                      >
+                        📡 Publish
+                      </button>`}
+                      ${isPublishing &&
+          html`<span
+                        class="text-xs px-2 py-1 rounded-lg ${m.role ===
+              'assistant'
+              ? isDarkMode
+                ? 'bg-gray-600 text-gray-300'
+                : 'bg-purple-100 text-purple-700'
+              : 'bg-green-500 text-white'}"
+                      >
+                        🔄 Publishing...
+                      </span>`}
+                      ${isPublished &&
+          html`<span
+                        class="text-xs px-2 py-1 rounded-lg ${m.role ===
+              'assistant'
+              ? isDarkMode
+                ? 'bg-green-600 text-green-100'
+                : 'bg-green-100 text-green-700'
+              : 'bg-green-600 text-white'}"
+                        title="Published to Nostr"
+                      >
+                        ✅ Published
+                      </span>`}
+                      ${!canPublish &&
+          html`<span
+                        class="text-xs px-2 py-1 rounded-lg ${isDarkMode
+              ? 'bg-gray-600 text-gray-400'
+              : 'bg-gray-100 text-gray-500'}"
+                        title="Publish profile first"
+                      >
+                        🔒 Profile needed
+                      </span>`}
+                    </div>
+                  </div>
+                </div>`
+      })}
+    ${loading &&
+    html`<div class="flex justify-start">
+              <div
+                class="border-l-4 border-dm-purple px-4 py-3 rounded-2xl shadow-lg animate-pulse ${isDarkMode
+        ? 'bg-gray-700 text-gray-100'
+        : 'bg-purple-50 text-gray-800'}"
+              >
+                <div class="flex space-x-1">
+                  <div
+                    class="w-2 h-2 bg-dm-purple rounded-full animate-bounce"
+                  ></div>
+                  <div
+                    class="w-2 h-2 bg-dm-purple rounded-full animate-bounce"
+                    style="animation-delay: 0.1s"
+                  ></div>
+                  <div
+                    class="w-2 h-2 bg-dm-purple rounded-full animate-bounce"
+                    style="animation-delay: 0.2s"
+                  ></div>
+                </div>
+              </div>
+            </div>`}
+  </main>
+
+  <form
+    class="border-t p-4 shadow-lg ${isDarkMode
+      ? 'bg-gray-800 border-gray-700'
+      : 'bg-white border-gray-200'}"
+    onSubmit=${e => {
+      e.preventDefault()
+      send()
+    }}
+  >
+    <div class="flex gap-3">
+      <input
+        type="text"
+        value=${input}
+        placeholder=${adventureStage >= 3
+      ? 'Adventure complete! Start a new character...'
+      : 'Describe your action...'}
+        onInput=${e => setInput(e.target.value)}
+        class="flex-1 border rounded-lg px-4 py-3 focus:ring-2 focus:ring-dm-purple focus:border-transparent transition-all ${isDarkMode
+      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'}"
+        disabled=${loading || adventureStage >= 3}
+      />
+      <button
+        type="submit"
+        disabled=${loading || !input.trim() || adventureStage >= 3}
+        class="bg-gradient-to-r from-dm-purple to-purple-600 hover:from-purple-600 hover:to-dm-purple disabled:from-gray-600 disabled:to-gray-700 text-white font-semibold px-6 py-3 rounded-lg transition-all duration-200 transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed shadow-lg"
+      >
+        ${loading
+      ? 'Sending...'
+      : adventureStage >= 3
+        ? 'Complete!'
+        : 'Send'}
+      </button>
+    </div>
+  </form> `
+}
+
+function App () {
+  const [apiKey, setApiKey] = useState(
+    () => localStorage.getItem('OPENAI_KEY') || ''
+  )
+  const [gameConfig, setGameConfig] = useState(() => {
+    const saved = localStorage.getItem('GAME_CONFIG')
+    return saved ? JSON.parse(saved) : null
+  })
+  const [keyInput, setKeyInput] = useState('')
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('THEME_MODE')
+    return saved !== 'light' // Default to dark, unless explicitly set to light
+  })
+
+  function saveKey (key) {
+    if (key && key.trim()) {
+      localStorage.setItem('OPENAI_KEY', key.trim())
+      setApiKey(key.trim())
+      setKeyInput('')
+    }
+  }
+
+  function startNewGame (config) {
+    // Generate new nostr keypair for this character
+    const keypair = generateNostrKeypair()
+    saveNostrKeys(keypair.privkey, keypair.pubkey)
+
+    // Generate DM keypair if it doesn't exist
+    const dmKeys = loadDMKeys()
+    if (!dmKeys.privkey || !dmKeys.pubkey) {
+      const dmKeypair = generateNostrKeypair()
+      saveDMKeys(dmKeypair.privkey, dmKeypair.pubkey)
+    }
+
+    localStorage.setItem('GAME_CONFIG', JSON.stringify(config))
+    setGameConfig(config)
+  }
+
+  function resetCharacter () {
+    localStorage.removeItem('GAME_CONFIG')
+    localStorage.removeItem('nostr:privkey')
+    localStorage.removeItem('nostr:pubkey')
+    localStorage.removeItem('published_messages')
+    localStorage.removeItem('published_events')
+    localStorage.removeItem('published:character')
+    setGameConfig(null)
+  }
+
+  function toggleTheme () {
+    const newMode = !isDarkMode
+    setIsDarkMode(newMode)
+    localStorage.setItem('THEME_MODE', newMode ? 'dark' : 'light')
+  }
+
+  // Key modal shown if missing
+  const keyModal =
+    !apiKey &&
+    html` <div
+    class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
+  >
+    <div
+      class="p-8 rounded-2xl shadow-2xl border max-w-md w-full ${isDarkMode
+        ? 'bg-gray-800 border-gray-700'
+        : 'bg-white border-gray-200'}"
+    >
+      <div class="text-center mb-6">
+        <h1
+          class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-dm-purple to-player-green mb-2"
+        >
+          OpenAI API Key Required
+        </h1>
+        <p
+          class="text-sm ${isDarkMode
+        ? 'text-gray-400'
+        : 'text-gray-600'}"
+        >
+          Enter your OpenAI API key to start your adventure
+        </p>
+      </div>
+
+      <div class="space-y-4">
+        <input
+          type="password"
+          placeholder="sk-..."
+          value=${keyInput}
+          onInput=${e => setKeyInput(e.target.value)}
+          onKeydown=${e => {
+        if (e.key === 'Enter') saveKey(keyInput)
+      }}
+          class="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-dm-purple focus:border-transparent transition-all ${isDarkMode
+        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500'
+        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'}"
+        />
+
+        <button
+          onClick=${() => saveKey(keyInput)}
+          disabled=${!keyInput.trim()}
+          class="w-full bg-gradient-to-r from-dm-purple to-purple-600 hover:from-purple-600 hover:to-dm-purple disabled:from-gray-600 disabled:to-gray-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed shadow-lg"
+        >
+          Save & Continue
+        </button>
+
+        <p
+          class="text-xs text-center ${isDarkMode
+        ? 'text-gray-500'
+        : 'text-gray-400'}"
+        >
+          Your API key is stored locally in your browser
+        </p>
+      </div>
+    </div>
+  </div>`
+
+  return html`<div
+    class="${isDarkMode
+      ? 'bg-gray-900 text-gray-100'
+      : 'bg-gray-50 text-gray-900'} h-full"
+  >
+    ${keyModal}
+    ${!gameConfig &&
+    apiKey &&
+    html`<${Config}
+            onStart=${startNewGame}
+            isDarkMode=${isDarkMode}
+            onToggleTheme=${toggleTheme}
+          />`}
+    ${gameConfig &&
+    apiKey &&
+    html`<${Chat}
+            apiKey=${apiKey}
+            config=${gameConfig}
+            onNewCharacter=${resetCharacter}
+            isDarkMode=${isDarkMode}
+            onToggleTheme=${toggleTheme}
+          />`}
+  </div>`
+}
+
+render(html`<${App} />`, document.getElementById('app'))
