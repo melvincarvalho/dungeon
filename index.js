@@ -709,9 +709,39 @@ function Chat ({
     messageType: '',
     imageUrl: ''
   })
+  const [copperPieces, setCopperPieces] = useState(() => {
+    return parseInt(localStorage.getItem('copper_pieces') || '0')
+  })
 
   const nostrKeys = loadNostrKeys()
   const dmKeys = loadDMKeys()
+
+  // Function to award copper pieces randomly (80% chance)
+  function awardCopperPieces () {
+    if (Math.random() < 0.8) { // 80% chance
+      const newTotal = copperPieces + 10
+      setCopperPieces(newTotal)
+      localStorage.setItem('copper_pieces', newTotal.toString())
+      return true
+    }
+    return false
+  }
+
+  // Function to add copper reward to DM response
+  function addCopperToResponse (response) {
+    const copperPhrases = [
+      "\n\n🪙 You spot 10 copper pieces glinting in the shadows!",
+      "\n\n🪙 Among the debris, you discover 10 copper pieces!",
+      "\n\n🪙 A small pouch containing 10 copper pieces catches your eye!",
+      "\n\n🪙 You find 10 copper pieces scattered on the ground!",
+      "\n\n🪙 Hidden beneath some rubble, 10 copper pieces await!",
+      "\n\n🪙 A fallen enemy's purse yields 10 copper pieces!",
+      "\n\n🪙 You notice 10 copper pieces gleaming nearby!",
+      "\n\n🪙 Your keen eyes spot 10 copper pieces tucked away!"
+    ]
+    const randomPhrase = copperPhrases[Math.floor(Math.random() * copperPhrases.length)]
+    return response + randomPhrase
+  }
 
   // Generate dynamic introduction with GPT on component mount
   useEffect(() => {
@@ -1190,9 +1220,18 @@ Requirements:
         })
       }
 
+      // Check if we should award copper pieces and modify response
+      let finalContent = assistantContent
+      if (adventureStage < 3) { // Only during active adventure
+        const copperAwarded = awardCopperPieces()
+        if (copperAwarded) {
+          finalContent = addCopperToResponse(assistantContent)
+        }
+      }
+
       const assistantMsg = {
         role: 'assistant',
-        content: assistantContent
+        content: finalContent
       }
       setMessages(m => [...m, assistantMsg])
     } catch (err) {
@@ -1876,13 +1915,21 @@ Requirements:
         >
           ${config.name} the ${config.role}
         </h2>
-        <span
-          class="text-sm px-3 py-1 rounded-full ${isDarkMode
+                        <span
+                  class="text-sm px-3 py-1 rounded-full ${isDarkMode
       ? 'text-gray-400 bg-gray-700'
       : 'text-gray-600 bg-gray-100'}"
-        >
-          ${config.genre}
-        </span>
+                >
+                  ${config.genre}
+                </span>
+                <span
+                  class="text-sm px-3 py-1 rounded-full ${isDarkMode
+      ? 'text-yellow-300 bg-yellow-900'
+      : 'text-yellow-700 bg-yellow-100'}"
+                  title="Copper pieces"
+                >
+                  🪙 ${copperPieces} cp
+                </span>
         ${adventureStage < 3 &&
     html`<span
                   class="text-xs px-2 py-1 rounded-full ${isDarkMode
@@ -2182,6 +2229,7 @@ function App () {
     localStorage.removeItem('published_messages')
     localStorage.removeItem('published_events')
     localStorage.removeItem('published:character')
+    localStorage.removeItem('copper_pieces')
     setGameConfig(null)
   }
 
